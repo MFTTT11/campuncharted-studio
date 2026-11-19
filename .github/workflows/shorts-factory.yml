@@ -1,0 +1,105 @@
+name: Shorts Factory (3x Daily)
+
+on:
+  schedule:
+    # 07:00, 13:00, 19:00 UTC -> feeds peak 13:15, 18:15, 23:15 UTC YouTube Shorts slots
+    - cron: '0 7,13,19 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (render & QC only, DO NOT upload to YouTube)'
+        type: boolean
+        default: false
+      series:
+        description: 'Optional series override'
+        type: choice
+        default: ''
+        options:
+          - ''
+          - CAMP_MISTAKES
+          - WILD_STAYS
+          - GEAR_AND_HACKS
+          - EXTREME_WEATHER_NATURE
+          - TURKEY_AND_EURASIA_HIDDEN
+      topic:
+        description: 'Optional custom topic or catalog topic_id'
+        type: string
+        default: ''
+      publish_now:
+        description: 'Publish immediately instead of scheduling at peak UTC slot'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: campuncharted-state
+  cancel-in-progress: false
+
+jobs:
+  produce-short:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install FFmpeg & Bold TrueType Fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-roboto fonts-dejavu-core
+          fc-cache -f
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install --no-deps -e .
+
+      - name: Produce & Publish Viral Short
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          COVERR_API_KEY: ${{ secrets.COVERR_API_KEY }}
+          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+          YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
+          YOUTUBE_CHANNEL_ID: UCwzbmfB6P-s7RrZqHA1JCqw
+        run: |
+          ARGS=()
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS+=(--dry-run); fi
+          if [ -n "${{ inputs.series }}" ]; then ARGS+=(--series "${{ inputs.series }}"); fi
+          if [ -n "${{ inputs.topic }}" ]; then ARGS+=(--topic "${{ inputs.topic }}"); fi
+          if [ "${{ inputs.publish_now }}" = "true" ]; then ARGS+=(--publish-now); fi
+          campuncharted produce-short "${ARGS[@]}"
+
+      - name: Upload preview artifacts (7-day retention)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: short-output-${{ github.run_id }}
+          path: build_output/*
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Commit updated studio state
+        if: success() && inputs.dry_run != true
+        run: |
+          git config user.name "CampUncharted Studio Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(state): record Short publish $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git pull --rebase --autostash origin main
+            git push origin HEAD:main
+          fi

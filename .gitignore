@@ -1,0 +1,33 @@
+# Secrets & credentials (NEVER commit!)
+token.json
+client_secret*.json
+.env
+.env.*
+*.pem
+*.key
+
+# Build & runtime artifacts
+build_output/
+work_tmp/
+cache/
+*.mp4
+*.mp3
+*.wav
+*.ass
+*.srt
+*.jpg
+*.png
+!assets/**
+*.youtube.json
+*.lock
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+dist/
+build/

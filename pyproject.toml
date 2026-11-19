@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "campuncharted-studio"
+version = "2.0.0"
+description = "Autonomous 24/7 YouTube Shorts & Documentary studio for CampUncharted."
+requires-python = ">=3.11"
+dependencies = [
+    "edge-tts>=7.0.0",
+    "google-api-python-client>=2.140.0",
+    "google-auth>=2.35.0",
+    "google-auth-httplib2>=0.2.0",
+    "google-auth-oauthlib>=1.2.0",
+    "google-genai>=1.0.0",
+    "httplib2>=0.22.0",
+    "numpy>=1.26.0",
+    "Pillow>=10.0.0",
+    "pydantic>=2.8.0",
+    "requests>=2.32.0",
+]
+
+[project.scripts]
+campuncharted = "campuncharted.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

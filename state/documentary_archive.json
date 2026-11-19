@@ -1,0 +1,62 @@
+{
+  "grand_canyon_national_park": {
+    "place": "Grand Canyon National Park",
+    "video_id": "",
+    "legacy_date": "23.09.2026",
+    "status": "READY"
+  },
+  "yosemite_national_park": {
+    "place": "Yosemite National Park",
+    "video_id": "",
+    "legacy_date": "23.09.2026",
+    "status": "READY"
+  },
+  "glacier_national_park": {
+    "place": "Glacier National Park",
+    "video_id": "",
+    "legacy_date": "27.09.2026",
+    "status": "READY"
+  },
+  "canyonlands_national_park": {
+    "place": "Canyonlands National Park",
+    "video_id": "",
+    "legacy_date": "27.09.2026",
+    "status": "READY"
+  },
+  "joshua_tree_national_park": {
+    "place": "Joshua Tree National Park",
+    "video_id": "",
+    "legacy_date": "28.09.2026",
+    "status": "READY"
+  },
+  "bryce_canyon_national_park": {
+    "place": "Bryce Canyon National Park",
+    "video_id": "",
+    "legacy_date": "30.09.2026",
+    "status": "READY"
+  },
+  "dolomites": {
+    "place": "Dolomites",
+    "video_id": "",
+    "legacy_date": "14.10.2026",
+    "status": "READY"
+  },
+  "lofoten_islands": {
+    "place": "Lofoten Islands",
+    "video_id": "",
+    "legacy_date": "14.10.2026",
+    "status": "READY"
+  },
+  "rocky_mountain_national_park": {
+    "place": "Rocky Mountain National Park",
+    "video_id": "",
+    "legacy_date": "15.10.2026",
+    "status": "READY"
+  },
+  "iceland": {
+    "place": "Iceland",
+    "video_id": "",
+    "legacy_date": "15.10.2026",
+    "status": "READY"
+  }
+}

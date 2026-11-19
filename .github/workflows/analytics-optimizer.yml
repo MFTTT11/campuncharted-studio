@@ -1,0 +1,72 @@
+name: Analytics Optimizer & Subtitle Backfill (Daily)
+
+on:
+  schedule:
+    # Daily at 05:00 UTC: pull 30-day retention analytics, rebalance series weights, backfill i18n subtitles
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+    inputs:
+      verify_only:
+        description: 'Only verify YouTube OAuth token & CampUncharted channel lock'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: campuncharted-state
+  cancel-in-progress: false
+
+jobs:
+  optimize-channel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install --no-deps -e .
+
+      - name: Verify YouTube Auth & Channel Lock
+        env:
+          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+          YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
+          YOUTUBE_CHANNEL_ID: UCwzbmfB6P-s7RrZqHA1JCqw
+        run: campuncharted verify-auth
+
+      - name: Optimize Series Weights & Backfill Multi-Language Subtitles
+        if: inputs.verify_only != true
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+          YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
+          YOUTUBE_CHANNEL_ID: UCwzbmfB6P-s7RrZqHA1JCqw
+        run: |
+          campuncharted optimize-analytics --lookback-days 30
+          campuncharted backfill-subtitles
+
+      - name: Commit updated analytics & subtitle state
+        if: success() && inputs.verify_only != true
+        run: |
+          git config user.name "CampUncharted Studio Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(analytics): refresh insights & subtitle queue $(date -u +'%Y-%m-%d')"
+            git pull --rebase --autostash origin main
+            git push origin HEAD:main
+          fi

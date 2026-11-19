@@ -1,0 +1,17 @@
+{
+  "source": "migrated_v1_baseline",
+  "series_weights": {
+    "CAMP_MISTAKES": 0.3,
+    "WILD_STAYS": 0.25,
+    "GEAR_AND_HACKS": 0.2,
+    "EXTREME_WEATHER_NATURE": 0.15,
+    "TURKEY_AND_EURASIA_HIDDEN": 0.1
+  },
+  "rolling_30d": {
+    "views": 11086,
+    "avg_view_percentage": 47.5,
+    "net_subscribers": 3
+  },
+  "summary_guidance": "Baseline v1 Shorts averaged 47.5% AVP due to short encyclopedia-style narration and slow visual cuts. Prioritize instant 2-second curiosity hooks, 35-48s escalating narratives, and bold survival/wild-place takeaways.",
+  "updated_at": "2026-11-19T11:49:58.004019+00:00"
+}
