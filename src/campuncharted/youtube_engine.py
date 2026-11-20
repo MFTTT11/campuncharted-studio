@@ -34,12 +34,15 @@ CAPTION_INSERT_QUOTA_COST = 400
 LOCALIZATION_UPDATE_QUOTA_COST = 50
 
 
-def _decode_json_secret(raw: str) -> dict[str, Any]:
+def _decode_json_secret(raw: str, *, label: str = "secret") -> dict[str, Any]:
     text = raw.strip()
     if not text:
         return {}
     if text.startswith("{"):
-        return json.loads(text)
+        try:
+            return json.loads(text)
+        except ValueError:
+            pass
     # Handle full OAuth Playground HTTP response copy-paste ("HTTP/1.1 200 OK ... { ... }")
     brace_start = text.find("{")
     brace_end = text.rfind("}")
@@ -48,12 +51,39 @@ def _decode_json_secret(raw: str) -> dict[str, Any]:
             return json.loads(text[brace_start : brace_end + 1])
         except ValueError:
             pass
-    # Handle bare Google OAuth refresh_token string pasted directly ("1//...")
-    if text.startswith("1//") and "\n" not in text and " " not in text:
-        return {"token": "", "refresh_token": text}
+    # Handle partial JSON copy (missing opening/closing brace) or bare/quoted Google refresh_token
+    import re
+
+    rt_match = re.search(r"1//[A-Za-z0-9_\-.]{20,}", text)
+    if rt_match:
+        recovered: dict[str, Any] = {"token": "", "refresh_token": rt_match.group(0)}
+        cid_match = re.search(r"[0-9]+-[A-Za-z0-9]+\.apps\.googleusercontent\.com", text)
+        sec_match = re.search(r"GOCSPX-[A-Za-z0-9_\-]+", text)
+        if cid_match:
+            recovered["client_id"] = cid_match.group(0)
+        if sec_match:
+            recovered["client_secret"] = sec_match.group(0)
+        return recovered
+    # Handle bare client_secret / partial client JSON
+    cid_match = re.search(r"[0-9]+-[A-Za-z0-9]+\.apps\.googleusercontent\.com", text)
+    sec_match = re.search(r"GOCSPX-[A-Za-z0-9_\-]+", text)
+    if cid_match or sec_match:
+        out: dict[str, Any] = {}
+        if cid_match:
+            out["client_id"] = cid_match.group(0)
+        if sec_match:
+            out["client_secret"] = sec_match.group(0)
+        return out
     # Support base64-encoded JSON secrets for safe CI/CD pasting
-    decoded = base64.b64decode(text).decode("utf-8")
-    return json.loads(decoded)
+    try:
+        padded = text + ("=" * ((4 - len(text) % 4) % 4))
+        decoded = base64.b64decode(padded).decode("utf-8")
+        return json.loads(decoded)
+    except Exception as err:
+        raise RuntimeError(
+            f"Could not parse {label} (len={len(text)}, has_braces={'{' in text and '}' in text}, "
+            f"has_refresh_token=False, has_client_id=False). Paste the JSON containing refresh_token (1//...)!"
+        ) from err
 
 
 def load_youtube_credentials(creds: ApiCredentials, *, local_token_path: Path | None = None) -> Credentials:
