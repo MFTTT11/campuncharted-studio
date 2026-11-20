@@ -70,30 +70,95 @@ class TranslationBatch(BaseModel):
     translated_lines: list[str] = Field(..., description="Exact same length list of translated subtitle lines in order.")
 
 
-def select_gemini_model(client: genai.Client) -> str:
-    """Pick the highest-quality available Gemini text model (never defaulting to flash-lite)."""
+def list_candidate_gemini_models(client: genai.Client) -> list[str]:
+    """Return prioritized non-lite Gemini text models available to this API key (latest 3.x first)."""
     try:
         available = list(client.models.list())
     except Exception:
-        return GEMINI_PREFERRED_MODELS[0]
+        return list(GEMINI_PREFERRED_MODELS)
 
     names: list[str] = []
     for model in available:
         name = str(getattr(model, "name", "")).removeprefix("models/")
         actions = getattr(model, "supported_actions", None) or []
-        if "gemini" in name.lower() and (not actions or "generateContent" in actions):
+        lower = name.lower()
+        if (
+            "gemini" in lower
+            and "image" not in lower
+            and "audio" not in lower
+            and "tts" not in lower
+            and "embedding" not in lower
+            and (not actions or "generateContent" in actions)
+        ):
             names.append(name)
 
+    ordered: list[str] = []
+    seen: set[str] = set()
+
+    def _add(m: str) -> None:
+        if m and m not in seen:
+            seen.add(m)
+            ordered.append(m)
+
+    # 1. Exact/prefix matches against GEMINI_PREFERRED_MODELS in newest-first order
     for preferred in GEMINI_PREFERRED_MODELS:
         for name in names:
-            if name == preferred or (preferred in name and "lite" not in name.lower() and "tts" not in name.lower()):
-                return name
+            if name == preferred or (preferred in name and "lite" not in name.lower()):
+                _add(name)
 
-    for name in names:
-        if "flash" in name.lower() and "lite" not in name.lower() and "image" not in name.lower() and "audio" not in name.lower():
-            return name
+    # 2. Any other newer non-lite Flash or Pro models (sorted reverse so 4.x/3.x come before 2.x)
+    for name in sorted(names, reverse=True):
+        lower = name.lower()
+        if ("flash" in lower or "pro" in lower) and "lite" not in lower:
+            _add(name)
 
-    return GEMINI_PREFERRED_MODELS[0]
+    # 3. Last-resort fallback to lite models only if every full model is unavailable
+    for name in sorted(names, reverse=True):
+        if "flash" in name.lower():
+            _add(name)
+
+    for fallback in GEMINI_PREFERRED_MODELS:
+        _add(fallback)
+    return ordered
+
+
+def select_gemini_model(client: genai.Client) -> str:
+    """Pick the highest-priority available Gemini text model."""
+    return list_candidate_gemini_models(client)[0]
+
+
+def _generate_structured_with_fallback(
+    client: genai.Client,
+    *,
+    prompt: str,
+    schema: type[BaseModel],
+    temperature: float,
+) -> tuple[str, Any]:
+    """Call Gemini structured output with automatic fallback if a model returns 404/429/503."""
+    candidates = list_candidate_gemini_models(client)[:6]
+    last_err: Exception | None = None
+    for model_name in candidates:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": schema,
+                    "temperature": temperature,
+                },
+            )
+            parsed = schema.model_validate_json(response.text)
+            print(f"[GEMINI] Generated {schema.__name__} using model: {model_name}", flush=True)
+            return model_name, parsed
+        except Exception as err:
+            last_err = err
+            msg = str(err)
+            if any(code in msg for code in ("404", "NOT_FOUND", "429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "403")):
+                print(f"[GEMINI] Model '{model_name}' unavailable ({msg[:140]}); trying next model...", flush=True)
+                continue
+            raise
+    raise RuntimeError(f"All Gemini models failed ({candidates}): {last_err}")
 
 
 def _clean_title(raw: str, max_len: int = 68) -> str:
@@ -149,7 +214,6 @@ def generate_short_script(
         raise RuntimeError("GEMINI_API_KEY is required to generate scripts.")
 
     client = genai.Client(api_key=api_key, http_options={"timeout": 60000})
-    model_name = select_gemini_model(client)
     facts_block = _format_facts_block(sources, max_chars=9000)
     insights_block = _format_insights_block(insights)
 
@@ -181,16 +245,12 @@ VIRAL RETENTION ARCHITECTURE (STRICT):
    - Never claim a scenic landscape legally permits camping unless explicitly confirmed in the reference data.
 """
 
-    response = client.models.generate_content(
-        model=model_name,
-        contents=prompt,
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": ShortScript,
-            "temperature": 0.75,
-        },
+    _, script = _generate_structured_with_fallback(
+        client,
+        prompt=prompt,
+        schema=ShortScript,
+        temperature=0.75,
     )
-    script = ShortScript.model_validate_json(response.text)
     return validate_and_polish_short_script(script, topic)
 
 
@@ -284,7 +344,6 @@ def generate_documentary_script(
         raise RuntimeError("GEMINI_API_KEY is required to generate documentary scripts.")
 
     client = genai.Client(api_key=api_key, http_options={"timeout": 90000})
-    model_name = select_gemini_model(client)
     facts_block = _format_facts_block(sources, max_chars=18000)
 
     prompt = f"""You are the Lead Documentary Filmmaker for {CHANNEL_HANDLE}, crafting an immersive 7-to-9-minute 4K/HD nature & wilderness documentary.
@@ -311,16 +370,12 @@ WRITING STANDARDS:
 - Title must be 45-68 characters and genuinely intriguing (NEVER generic "{topic.place} Documentary").
 """
 
-    response = client.models.generate_content(
-        model=model_name,
-        contents=prompt,
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": DocumentaryScript,
-            "temperature": 0.72,
-        },
+    _, doc = _generate_structured_with_fallback(
+        client,
+        prompt=prompt,
+        schema=DocumentaryScript,
+        temperature=0.72,
     )
-    doc = DocumentaryScript.model_validate_json(response.text)
     if len(doc.chapters) < 4:
         raise ValueError(f"Documentary script has too few chapters ({len(doc.chapters)})")
     doc.title = _clean_title(doc.title, max_len=72)
@@ -374,7 +429,6 @@ def translate_subtitles_and_metadata(
         raise RuntimeError("GEMINI_API_KEY is required for translations.")
     lang_name = SUBTITLE_LANGUAGES.get(target_lang, target_lang)
     client = genai.Client(api_key=api_key, http_options={"timeout": 60000})
-    model_name = select_gemini_model(client)
 
     payload = json.dumps(
         {"title": title, "description": description[:1200], "lines": lines},
@@ -390,16 +444,12 @@ STRICT RULES:
 INPUT JSON:
 {payload}
 """
-    response = client.models.generate_content(
-        model=model_name,
-        contents=prompt,
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": TranslationBatch,
-            "temperature": 0.3,
-        },
+    _, result = _generate_structured_with_fallback(
+        client,
+        prompt=prompt,
+        schema=TranslationBatch,
+        temperature=0.3,
     )
-    result = TranslationBatch.model_validate_json(response.text)
     if len(result.translated_lines) != len(lines):
         raise ValueError(f"Translation line count mismatch for {target_lang}: got {len(result.translated_lines)}, expected {len(lines)}")
     result.localized_title = _clean_title(result.localized_title, max_len=78)

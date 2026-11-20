@@ -246,3 +246,47 @@ def test_youtube_channel_lock_and_http_308_fix(tmp_path: Path) -> None:
     slot2 = reserve_publish_slot(store, format_type="short", publish_now=False, now_utc=now)
     assert slot2 == "2026-11-20T18:15:00Z"
     assert reserve_publish_slot(store, format_type="short", publish_now=True, now_utc=now) is None
+
+
+def test_gemini_model_priority_and_404_fallback() -> None:
+    from campuncharted.content_engine import (
+        TranslationBatch,
+        _generate_structured_with_fallback,
+        list_candidate_gemini_models,
+    )
+
+    fake_models = [
+        SimpleNamespace(name="models/gemini-2.5-flash", supported_actions=["generateContent"]),
+        SimpleNamespace(name="models/gemini-3.8-flash", supported_actions=["generateContent"]),
+        SimpleNamespace(name="models/gemini-3.5-flash-lite", supported_actions=["generateContent"]),
+        SimpleNamespace(name="models/gemini-3.5-flash", supported_actions=["generateContent"]),
+    ]
+    called: list[str] = []
+
+    class FakeModelsApi:
+        def list(self):
+            return fake_models
+
+        def generate_content(self, *, model: str, contents: str, config: dict):
+            called.append(model)
+            if model == "gemini-3.8-flash":
+                raise RuntimeError("404 NOT_FOUND: temporary unavailable")
+            return SimpleNamespace(
+                text='{"localized_title":"Test","localized_description":"Desc","translated_lines":["Line 1"]}'
+            )
+
+    fake_client = SimpleNamespace(models=FakeModelsApi())
+    ordered = list_candidate_gemini_models(fake_client)
+    assert ordered[0] == "gemini-3.8-flash"
+    assert ordered[1] == "gemini-3.5-flash"
+
+    used_model, parsed = _generate_structured_with_fallback(
+        fake_client,
+        prompt="test",
+        schema=TranslationBatch,
+        temperature=0.3,
+    )
+    assert called == ["gemini-3.8-flash", "gemini-3.5-flash"]
+    assert used_model == "gemini-3.5-flash"
+    assert parsed.localized_title == "Test"
+
