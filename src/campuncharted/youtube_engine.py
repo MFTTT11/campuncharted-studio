@@ -40,6 +40,17 @@ def _decode_json_secret(raw: str) -> dict[str, Any]:
         return {}
     if text.startswith("{"):
         return json.loads(text)
+    # Handle full OAuth Playground HTTP response copy-paste ("HTTP/1.1 200 OK ... { ... }")
+    brace_start = text.find("{")
+    brace_end = text.rfind("}")
+    if brace_start != -1 and brace_end > brace_start:
+        try:
+            return json.loads(text[brace_start : brace_end + 1])
+        except ValueError:
+            pass
+    # Handle bare Google OAuth refresh_token string pasted directly ("1//...")
+    if text.startswith("1//") and "\n" not in text and " " not in text:
+        return {"token": "", "refresh_token": text}
     # Support base64-encoded JSON secrets for safe CI/CD pasting
     decoded = base64.b64decode(text).decode("utf-8")
     return json.loads(decoded)
