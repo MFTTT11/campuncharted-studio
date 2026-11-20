@@ -6,16 +6,16 @@
   "channel_stats": {
     "subscribers": 26,
     "total_views": 32038,
-    "video_count": 241
+    "video_count": 242
   },
   "rolling_30d": {
-    "views": 2158,
-    "watch_minutes": 327.0,
+    "views": 2205,
+    "watch_minutes": 337.0,
     "avg_view_duration_sec": 23.0,
-    "avg_view_percentage": 32.3,
+    "avg_view_percentage": 32.2,
     "subscribers_gained": 24,
-    "subscribers_lost": 10,
-    "net_subscribers": 14,
+    "subscribers_lost": 22,
+    "net_subscribers": 2,
     "likes": 51,
     "comments": 0
   },
@@ -32,7 +32,7 @@
       "video_id": "JgrGBJRFwtM",
       "title": "Gezer: Ancient Foothills and Biblical History | Judaean Mountains... #Shorts #Camp",
       "series": "LEGACY",
-      "views": 114,
+      "views": 117,
       "avp": 106.2,
       "avd": 31.0,
       "net_subs": 0
@@ -59,7 +59,7 @@
       "video_id": "eolo2RKm-Zk",
       "title": "Edirne: The Most Contested Frontier City on Earth | Edirne... #Shorts #Camp",
       "series": "LEGACY",
-      "views": 91,
+      "views": 92,
       "avp": 88.4,
       "avd": 10.0,
       "net_subs": 0
@@ -68,18 +68,9 @@
       "video_id": "Gdz0SchEX7s",
       "title": "Konya: Exploring Central Anatolian Plateau History | Konya... #Shorts #Camp",
       "series": "LEGACY",
-      "views": 81,
+      "views": 83,
       "avp": 26.8,
       "avd": 19.0,
-      "net_subs": 0
-    },
-    {
-      "video_id": "IKQf-oZrcsw",
-      "title": "Lake Baikal: Inside Earth's Deepest Freshwater Basin | Siberia, Russia #Shorts #Camp",
-      "series": "LEGACY",
-      "views": 64,
-      "avp": 53.7,
-      "avd": 18.0,
       "net_subs": 0
     },
     {
@@ -92,6 +83,15 @@
       "net_subs": 0
     },
     {
+      "video_id": "IKQf-oZrcsw",
+      "title": "Lake Baikal: Inside Earth's Deepest Freshwater Basin | Siberia, Russia #Shorts #Camp",
+      "series": "LEGACY",
+      "views": 64,
+      "avp": 53.7,
+      "avd": 18.0,
+      "net_subs": 0
+    },
+    {
       "video_id": "G3YDKzbQ7CA",
       "title": "Paklenica: Ancient Canyons of Velebit | Zadar, Croatia #Shorts #Camp",
       "series": "LEGACY",
@@ -101,6 +101,11 @@
       "net_subs": 0
     }
   ],
-  "summary_guidance": "Last 30d channel performance: 2158 views, 32.3% average view percentage, +14 net subscribers. Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations.",
-  "updated_at": "2026-11-20T19:14:00.902103+00:00"
+  "summary_guidance": "Last 30d channel performance: 2205 views, 32.2% average view percentage, +2 net subscribers. Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations. Live YouTube trends: Ultra-short bushcraft and practical fire-starting hacks gain immediate retention by demonstrating immediate, tangible outdoor utility in under 15 seconds. | Visual contrast between fatal outdoor mistakes (e.g. wet cotton clothing, wrong tent orientation) and high-survivaity tactics drives strong bookmarking and sharing behavior.",
+  "updated_at": "2026-11-20T20:23:18.682097+00:00",
+  "live_youtube_trends": [
+    "Ultra-short bushcraft and practical fire-starting hacks gain immediate retention by demonstrating immediate, tangible outdoor utility in under 15 seconds.",
+    "Visual contrast between fatal outdoor mistakes (e.g. wet cotton clothing, wrong tent orientation) and high-survivaity tactics drives strong bookmarking and sharing behavior.",
+    "Hidden Eurasian alpine locations with untouched landscapes hook viewers looking for secluded, legal wild-camping destinations."
+  ]
 }

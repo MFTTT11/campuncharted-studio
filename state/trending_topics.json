@@ -1,0 +1,112 @@
+{
+  "updated_at": "2026-11-20T20:23:18.675286+00:00",
+  "patterns": [
+    "Ultra-short bushcraft and practical fire-starting hacks gain immediate retention by demonstrating immediate, tangible outdoor utility in under 15 seconds.",
+    "Visual contrast between fatal outdoor mistakes (e.g. wet cotton clothing, wrong tent orientation) and high-survivaity tactics drives strong bookmarking and sharing behavior.",
+    "Hidden Eurasian alpine locations with untouched landscapes hook viewers looking for secluded, legal wild-camping destinations."
+  ],
+  "recent_outliers": [
+    {
+      "video_id": "vuGcKxAn7Po",
+      "title": "Survive in the Wild: Smart Forest SurvivalSkills#survival#useful#jdeas#smart#shorts#camping",
+      "channel_title": "Survival Power Man",
+      "channel_subs": 1460,
+      "duration_sec": 6,
+      "views": 61165,
+      "likes": 207,
+      "comments": 0,
+      "age_days": 9.3,
+      "query": "campfire safety tips bushcraft #shorts",
+      "views_per_day": 6557.2,
+      "outlier_ratio": 41.89,
+      "engagement_pct": 0.34,
+      "viral_score": 28.35
+    }
+  ],
+  "topics": [
+    {
+      "topic_id": "trend_pitching_tent_high_wind_mistake",
+      "series": "CAMP_MISTAKES",
+      "subject": "Why pitching a tent broadside to prevailing mountain winds causes pole failure and hypothermia risk.",
+      "angle_hook": "Pitching your tent facing the wrong direction in high alpine winds isn't just noisy—it can snap your poles in seconds.",
+      "wiki_titles": [
+        "Tent",
+        "Wind_chill"
+      ],
+      "visual_queries": [
+        "camping tent high wind night",
+        "alpine storm tent mountain",
+        "tent guy lines stake ground",
+        "camper storm survival forest"
+      ],
+      "location_name": "",
+      "mood": "ALPINE_WIND",
+      "category_id": "27",
+      "inspired_by_pattern": "Short high-utility survival mistakes that save gear from catastrophic weather failure.",
+      "discovered_at": "2026-11-20T20:23:18.675286+00:00"
+    },
+    {
+      "topic_id": "trend_pine_resin_tinder_survival_hack",
+      "series": "GEAR_AND_HACKS",
+      "subject": "Using naturally occurring pine resin as a waterproof long-burning campfire starter during rain.",
+      "angle_hook": "When torrential rain renders kindle useless, this natural pine resin hack creates a wind-resistant flame in seconds.",
+      "wiki_titles": [
+        "Pine_resin",
+        "Fire_making"
+      ],
+      "visual_queries": [
+        "pine tree resin sap macro",
+        "wet forest campfire ignition",
+        "bushcraft fire starting rain",
+        "pine cone fire spark"
+      ],
+      "location_name": "",
+      "mood": "FOREST_RAIN",
+      "category_id": "27",
+      "inspired_by_pattern": "Practical bushcraft and forest fire-making hacks using quick-to-identify natural materials.",
+      "discovered_at": "2026-11-20T20:23:18.675286+00:00"
+    },
+    {
+      "topic_id": "trend_kackar_mountains_lake_wild_stay",
+      "series": "TURKEY_AND_EURASIA_HIDDEN",
+      "subject": "Wild camping beside glacial tarns in the Kaçkar Mountains of Northeastern Turkey.",
+      "angle_hook": "Tucked away in the Pontic Alps, these glacial turquoise lakes offer Eurasia's most dramatic backcountry wild-camping spots.",
+      "wiki_titles": [
+        "Kaçkar_Mountains",
+        "Glacial_lake"
+      ],
+      "visual_queries": [
+        "kackar mountains turkey alpine",
+        "glacial lake camping tent",
+        "misty pontic alps hiking",
+        "turquoise mountain lake drone"
+      ],
+      "location_name": "Kaçkar Mountains National Park, Turkey",
+      "mood": "EPIC_DISCOVERY",
+      "category_id": "19",
+      "inspired_by_pattern": "Showcasing ultra-scenic, little-known wild camping spots in Eastern Europe and Eurasia.",
+      "discovered_at": "2026-11-20T20:23:18.675286+00:00"
+    },
+    {
+      "topic_id": "trend_hypothermia_sweat_trap_layering",
+      "series": "EXTREME_WEATHER_NATURE",
+      "subject": "How sweating inside cotton base layers during cold hikes triggers rapid hypothermia during campsite rest.",
+      "angle_hook": "The dangerous winter camping mistake most hikers make before even pitching their tent happens during their first mile.",
+      "wiki_titles": [
+        "Hypothermia",
+        "Layered_clothing"
+      ],
+      "visual_queries": [
+        "winter hiker sweat cold trail",
+        "snow hiking thermal base layer",
+        "freezing mountain trek storm",
+        "camper resting winter forest"
+      ],
+      "location_name": "",
+      "mood": "CANYON_BREEZE",
+      "category_id": "27",
+      "inspired_by_pattern": "Counter-intuitive survival science explaining unexpected physical hazards in the wild.",
+      "discovered_at": "2026-11-20T20:23:18.675286+00:00"
+    }
+  ]
+}
