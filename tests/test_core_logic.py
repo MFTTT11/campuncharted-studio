@@ -269,16 +269,16 @@ def test_gemini_model_priority_and_404_fallback() -> None:
 
         def generate_content(self, *, model: str, contents: str, config: dict):
             called.append(model)
-            if model == "gemini-3.8-flash":
-                raise RuntimeError("404 NOT_FOUND: temporary unavailable")
+            if model == "gemini-3.5-flash":
+                raise RuntimeError("504 DEADLINE_EXCEEDED: temporary spike")
             return SimpleNamespace(
                 text='{"localized_title":"Test","localized_description":"Desc","translated_lines":["Line 1"]}'
             )
 
     fake_client = SimpleNamespace(models=FakeModelsApi())
     ordered = list_candidate_gemini_models(fake_client)
-    assert ordered[0] == "gemini-3.8-flash"
-    assert ordered[1] == "gemini-3.5-flash"
+    assert ordered[0] == "gemini-3.5-flash"
+    assert ordered[1] == "gemini-3.8-flash"
 
     used_model, parsed = _generate_structured_with_fallback(
         fake_client,
@@ -286,8 +286,8 @@ def test_gemini_model_priority_and_404_fallback() -> None:
         schema=TranslationBatch,
         temperature=0.3,
     )
-    assert called == ["gemini-3.8-flash", "gemini-3.5-flash"]
-    assert used_model == "gemini-3.5-flash"
+    assert called == ["gemini-3.5-flash", "gemini-3.8-flash"]
+    assert used_model == "gemini-3.8-flash"
     assert parsed.localized_title == "Test"
 
 

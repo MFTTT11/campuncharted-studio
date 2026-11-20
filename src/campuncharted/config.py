@@ -39,8 +39,8 @@ DAILY_LANGUAGE_QUOTA_BUDGET = 1800
 
 # High-quality Gemini model preference (latest 3.x models first — 2.5 is unavailable to new keys!)
 GEMINI_PREFERRED_MODELS = (
-    "gemini-3.8-flash",
     "gemini-3.5-flash",
+    "gemini-3.8-flash",
     "gemini-3.0-flash",
     "gemini-3.1-pro-preview",
     "gemini-2.5-flash",

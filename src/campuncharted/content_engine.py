@@ -154,7 +154,25 @@ def _generate_structured_with_fallback(
         except Exception as err:
             last_err = err
             msg = str(err)
-            if any(code in msg for code in ("404", "NOT_FOUND", "429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "403")):
+            if any(
+                code in msg
+                for code in (
+                    "404",
+                    "NOT_FOUND",
+                    "429",
+                    "RESOURCE_EXHAUSTED",
+                    "500",
+                    "502",
+                    "503",
+                    "504",
+                    "UNAVAILABLE",
+                    "DEADLINE_EXCEEDED",
+                    "INTERNAL",
+                    "403",
+                    "timed out",
+                    "Timeout",
+                )
+            ):
                 print(f"[GEMINI] Model '{model_name}' unavailable ({msg[:140]}); trying next model...", flush=True)
                 continue
             raise
