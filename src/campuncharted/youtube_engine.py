@@ -66,6 +66,13 @@ def load_youtube_credentials(creds: ApiCredentials, *, local_token_path: Path | 
         token_data.setdefault("client_secret", inner.get("client_secret"))
         token_data.setdefault("token_uri", inner.get("token_uri", "https://oauth2.googleapis.com/token"))
 
+    # Normalize raw Google OAuth Playground JSON seamlessly (access_token -> token, scope -> scopes)
+    if "token" not in token_data and "access_token" in token_data:
+        token_data["token"] = token_data["access_token"]
+    if "scopes" not in token_data and isinstance(token_data.get("scope"), str):
+        token_data["scopes"] = [s for s in token_data["scope"].split() if s]
+    token_data.setdefault("token_uri", "https://oauth2.googleapis.com/token")
+
     oauth_creds = Credentials.from_authorized_user_info(token_data)
     if not oauth_creds.valid:
         if not oauth_creds.refresh_token:
