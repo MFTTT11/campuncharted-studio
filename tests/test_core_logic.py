@@ -290,3 +290,20 @@ def test_gemini_model_priority_and_404_fallback() -> None:
     assert used_model == "gemini-3.5-flash"
     assert parsed.localized_title == "Test"
 
+
+def test_decode_json_secret_handles_all_playground_paste_variants() -> None:
+    from campuncharted.youtube_engine import _decode_json_secret
+
+    sample_rt = "1//04FAKE_REFRESH_TOKEN_FOR_UNIT_TEST_1234567890"
+    # 1. Full Playground HTTP dump
+    http_dump = f'HTTP/1.1 200 OK\nContent-Type: application/json\n\n{{"refresh_token": "{sample_rt}", "access_token": "ya29.test"}}'
+    assert _decode_json_secret(http_dump)["refresh_token"] == sample_rt
+
+    # 2. Partial JSON missing outer braces
+    partial = f'"refresh_token": "{sample_rt}",'
+    assert _decode_json_secret(partial)["refresh_token"] == sample_rt
+
+    # 3. Bare refresh token
+    assert _decode_json_secret(sample_rt)["refresh_token"] == sample_rt
+
+

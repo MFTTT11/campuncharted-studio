@@ -101,11 +101,22 @@ def load_youtube_credentials(creds: ApiCredentials, *, local_token_path: Path | 
 
     # Merge client_id/client_secret from optional YOUTUBE_CLIENT_SECRET_JSON if omitted in token
     if (not token_data.get("client_id") or not token_data.get("client_secret")) and creds.youtube_client_secret_json:
-        secret_blob = _decode_json_secret(creds.youtube_client_secret_json)
+        secret_blob = _decode_json_secret(creds.youtube_client_secret_json, label="YOUTUBE_CLIENT_SECRET_JSON")
         inner = secret_blob.get("installed") or secret_blob.get("web") or secret_blob
-        token_data.setdefault("client_id", inner.get("client_id"))
-        token_data.setdefault("client_secret", inner.get("client_secret"))
-        token_data.setdefault("token_uri", inner.get("token_uri", "https://oauth2.googleapis.com/token"))
+        if not token_data.get("client_id") and inner.get("client_id"):
+            token_data["client_id"] = inner["client_id"]
+        if not token_data.get("client_secret") and inner.get("client_secret"):
+            token_data["client_secret"] = inner["client_secret"]
+        if not token_data.get("token_uri") and inner.get("token_uri"):
+            token_data["token_uri"] = inner["token_uri"]
+
+    # Fallback to public YOUTUBE_CLIENT_ID env var if YOUTUBE_CLIENT_SECRET_JSON only contained bare GOCSPX-... secret
+    import os
+
+    if not token_data.get("client_id"):
+        env_cid = os.environ.get("YOUTUBE_CLIENT_ID", "").strip()
+        if env_cid:
+            token_data["client_id"] = env_cid
 
     # Normalize raw Google OAuth Playground JSON seamlessly (access_token -> token, scope -> scopes)
     if "token" not in token_data and "access_token" in token_data:
@@ -113,6 +124,15 @@ def load_youtube_credentials(creds: ApiCredentials, *, local_token_path: Path | 
     if "scopes" not in token_data and isinstance(token_data.get("scope"), str):
         token_data["scopes"] = [s for s in token_data["scope"].split() if s]
     token_data.setdefault("token_uri", "https://oauth2.googleapis.com/token")
+
+    print(
+        "[AUTH] Credential fields: "
+        f"refresh_token={bool(token_data.get('refresh_token'))}, "
+        f"client_id={bool(token_data.get('client_id'))}, "
+        f"client_secret={bool(token_data.get('client_secret'))}, "
+        f"token_uri={bool(token_data.get('token_uri'))}",
+        flush=True,
+    )
 
     oauth_creds = Credentials.from_authorized_user_info(token_data)
     if not oauth_creds.valid:
