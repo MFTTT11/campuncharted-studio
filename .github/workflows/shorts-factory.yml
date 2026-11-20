@@ -2,8 +2,11 @@ name: Shorts Factory (3x Daily)
 
 on:
   schedule:
-    # 07:00, 13:00, 19:00 UTC -> feeds peak 13:15, 18:15, 23:15 UTC YouTube Shorts slots
-    - cron: '0 7,13,19 * * *'
+    # Economic quota-saver mode (Nov 20-30): 1 Short/day at 15:00 UTC (~35 min total for rest of Nov)
+    - cron: '0 15 20-30 11 *'
+    # Full speed (auto-resumes Dec 1 after monthly 2,000-min quota reset): 3 Shorts/day
+    - cron: '0 7,13,19 * 1-10,12 *'
+    - cron: '0 7,13,19 1-19 11 *'
   workflow_dispatch:
     inputs:
       dry_run:

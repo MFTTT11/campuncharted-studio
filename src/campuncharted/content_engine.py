@@ -37,10 +37,22 @@ class ShortBeat(BaseModel):
 
 
 class ShortScript(BaseModel):
-    title: str = Field(..., description="High-CTR YouTube title, 38-62 characters, curiosity gap, NO hashtags, NO ellipsis.")
+    title: str = Field(..., description="High-CTR YouTube title, 38-62 characters, curiosity gap + search keyword, NO hashtags, NO ellipsis.")
     thumbnail_hook: str = Field(..., description="2-4 punchy uppercase words for the thumbnail cover (e.g. NEVER CAMP HERE).")
     pill_label: str = Field(..., description="Short 2-4 word topic/place label for the subtle opening top pill.")
     description_hook: str = Field(..., description="Engaging 2-sentence public YouTube description with a question at the end.")
+    key_takeaway: str = Field(
+        default="",
+        description="One crisp, quotable factual sentence directly answering the core question (for AEO/GEO search snippets).",
+    )
+    faq_question: str = Field(
+        default="",
+        description="Exact natural question campers/travelers search on Google or YouTube about this topic.",
+    )
+    faq_answer: str = Field(
+        default="",
+        description="Direct, factual 1-2 sentence answer to faq_question grounded in verified sources.",
+    )
     pinned_comment: str = Field(..., description="Natural 1-sentence question to spark viewer comments.")
     tags: list[str] = Field(..., description="6-10 clean, relevant lowercase search tags (no # symbol).")
     beats: list[ShortBeat] = Field(..., description="8-10 escalating spoken beats totaling 95-135 words (~35-48 seconds).")
@@ -59,6 +71,18 @@ class DocumentaryScript(BaseModel):
     title: str = Field(..., description="Compelling 45-68 character YouTube documentary title (NOT generic 'X Documentary').")
     thumbnail_hook: str = Field(..., description="2-4 dramatic uppercase words for the 16:9 documentary cover.")
     description_intro: str = Field(..., description="2-3 engaging sentences introducing the documentary without spoilers.")
+    key_takeaway: str = Field(
+        default="",
+        description="One crisp, authoritative factual summary of what makes this destination unique (for AEO/GEO snippets).",
+    )
+    faq_question: str = Field(
+        default="",
+        description="Most searched practical question travelers/campers ask about this destination.",
+    )
+    faq_answer: str = Field(
+        default="",
+        description="Direct 1-2 sentence verified answer to faq_question.",
+    )
     pinned_comment: str = Field(..., description="Thoughtful question for viewers about this destination.")
     tags: list[str] = Field(..., description="8-12 clean search tags.")
     chapters: list[DocumentaryChapter] = Field(..., description="6 cohesive chapters totaling ~1,050-1,300 words (~6.5-8.5 min).")
@@ -322,6 +346,9 @@ def validate_and_polish_short_script(script: ShortScript, topic: ShortTopic) -> 
         thumbnail_hook=thumb_hook,
         pill_label=pill,
         description_hook=" ".join(script.description_hook.split()).strip(),
+        key_takeaway=" ".join(script.key_takeaway.split()).strip(),
+        faq_question=" ".join(script.faq_question.split()).strip(),
+        faq_answer=" ".join(script.faq_answer.split()).strip(),
         pinned_comment=" ".join(script.pinned_comment.split()).strip(),
         tags=clean_tags,
         beats=cleaned_beats,
@@ -329,7 +356,7 @@ def validate_and_polish_short_script(script: ShortScript, topic: ShortTopic) -> 
 
 
 def build_short_description(script: ShortScript, topic: ShortTopic, sources: list[dict[str, str]]) -> str:
-    """Create a clean, human-readable YouTube description (NO internal hashes!)."""
+    """Create a clean, SEO + AEO + GEO optimized YouTube description (NO internal hashes!)."""
     source_urls = [s["url"] for s in sources[:2] if s.get("url")]
     hashtags = []
     for tag in script.tags[:4]:
@@ -339,11 +366,17 @@ def build_short_description(script: ShortScript, topic: ShortTopic, sources: lis
     if "#Shorts" not in hashtags:
         hashtags.append("#Shorts")
 
-    lines = [
-        script.description_hook,
-        "",
-        f"Subscribe to {CHANNEL_HANDLE} for real outdoor stories, backcountry safety, and Earth's wildest places.",
-    ]
+    lines = [script.description_hook]
+    if script.key_takeaway:
+        lines.extend(["", f"Key Takeaway: {script.key_takeaway}"])
+    if script.faq_question and script.faq_answer:
+        lines.extend(["", f"Q: {script.faq_question}", f"A: {script.faq_answer}"])
+    lines.extend(
+        [
+            "",
+            f"Subscribe to {CHANNEL_HANDLE} for real outdoor stories, backcountry safety, and Earth's wildest places.",
+        ]
+    )
     if source_urls:
         lines.extend(["", "References:", *[f"- {url}" for url in source_urls]])
     lines.extend(["", " ".join(hashtags)])
@@ -414,14 +447,24 @@ def build_documentary_description(
         m, s = divmod(total, 60)
         return f"{m:02d}:{s:02d}"
 
-    lines = [
-        script.description_intro.strip(),
-        "",
-        "Chapters:",
-        *[f"{fmt_ts(start)} {title}" for start, title in chapter_timestamps],
-        "",
-        f"Subscribe to {CHANNEL_HANDLE} for cinematic nature documentaries and backcountry guides.",
-    ]
+    lines = [script.description_intro.strip()]
+    if script.key_takeaway:
+        lines.extend(["", f"Key Takeaway: {script.key_takeaway.strip()}"])
+    lines.extend(
+        [
+            "",
+            "Chapters:",
+            *[f"{fmt_ts(start)} {title}" for start, title in chapter_timestamps],
+        ]
+    )
+    if script.faq_question and script.faq_answer:
+        lines.extend(["", f"Q: {script.faq_question.strip()}", f"A: {script.faq_answer.strip()}"])
+    lines.extend(
+        [
+            "",
+            f"Subscribe to {CHANNEL_HANDLE} for cinematic nature documentaries and backcountry guides.",
+        ]
+    )
     source_urls = [s["url"] for s in sources[:4] if s.get("url")]
     if source_urls:
         lines.extend(["", "Research & Official Sources:", *[f"- {u}" for u in source_urls]])

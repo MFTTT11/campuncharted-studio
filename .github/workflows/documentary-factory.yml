@@ -2,8 +2,9 @@ name: Documentary Factory (2x Weekly)
 
 on:
   schedule:
-    # Wednesday & Saturday 11:00 UTC -> feeds 16:00 UTC global Documentary peak slot
-    - cron: '0 11 * * 3,6'
+    # Auto-resumes Dec 1 (Wed & Sat 11:00 UTC) after monthly 2,000-min quota reset (manual Run still works anytime)
+    - cron: '0 11 * 1-10,12 3,6'
+    - cron: '0 11 1-19 11 3,6'
   workflow_dispatch:
     inputs:
       dry_run:

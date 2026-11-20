@@ -124,7 +124,7 @@ def _render_single_cut(
     dur = max(0.5, cut.duration)
     is_target_portrait = height > width
 
-    grade = "eq=contrast=1.06:saturation=1.12:brightness=0.01,unsharp=5:5:0.45:5:5:0.0,setsar=1"
+    grade = "eq=contrast=1.06:saturation=1.12:brightness=0.01,setsar=1"
     need_loop = cut.asset.duration < (cut.source_start + dur + 0.25)
 
     # Determine whether to full-bleed animate or use tasteful blurred ambient fill (for low-res landscape in 9:16)
@@ -148,7 +148,7 @@ def _render_single_cut(
             f"[0:v]fps={fps},split=2[bg_src][fg_src];"
             f"[bg_src]scale={width}:{height}:force_original_aspect_ratio=increase,"
             f"crop={width}:{height},boxblur=24:4,eq=brightness=-0.10:saturation=1.15[bg];"
-            f"[fg_src]scale={width}:-2:flags=lanczos,{grade}[fg];"
+            f"[fg_src]scale={width}:-2:flags=fast_bilinear,{grade}[fg];"
             f"[bg][fg]overlay=(W-w)/2:{fg_y}:shortest=1,format=yuv420p[vout]"
         )
         cmd.extend(["-filter_complex", filter_complex, "-map", "[vout]"])
@@ -173,7 +173,7 @@ def _render_single_cut(
 
         vf = (
             f"fps={fps},"
-            f"scale={ow}:{oh}:force_original_aspect_ratio=increase:flags=lanczos,"
+            f"scale={ow}:{oh}:force_original_aspect_ratio=increase:flags=fast_bilinear,"
             f"crop={width}:{height}:x='{x_expr}':y='{y_expr}',"
             f"{grade},format=yuv420p"
         )
@@ -185,9 +185,9 @@ def _render_single_cut(
             "-c:v",
             "libx264",
             "-preset",
-            "fast",
+            "ultrafast",
             "-crf",
-            "19",
+            "18",
             "-r",
             str(fps),
             str(out_mp4),
