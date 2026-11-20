@@ -176,8 +176,9 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
     )
     print(f"[SHORT] QC PASSED: {qc}", flush=True)
 
-    # 6. High-CTR vertical cover thumbnail
-    best_frame = extract_best_frame(out_mp4, run_work)
+    # 6. High-CTR vertical cover thumbnail (sample clean stitched video BEFORE burned-in captions!)
+    clean_thumb_source = run_work / "short_stitched.mp4"
+    best_frame = extract_best_frame(clean_thumb_source if clean_thumb_source.is_file() else out_mp4, run_work)
     thumb_jpg = paths.output_dir / f"{stamp}_{slug}_short.jpg"
     generate_thumbnail(
         best_frame,
@@ -381,8 +382,9 @@ def cmd_produce_doc(args: argparse.Namespace, paths: StudioPaths, creds: ApiCred
     )
     print(f"[DOC] QC PASSED: {qc}", flush=True)
 
-    # 6. High-CTR 1280x720 Documentary Thumbnail
-    best_frame = extract_best_frame(out_mp4, run_work, sample_count=9)
+    # 6. High-CTR 1280x720 Documentary Thumbnail (sample clean stitched video BEFORE chapter overlays!)
+    clean_doc_source = run_work / "doc_stitched.mp4"
+    best_frame = extract_best_frame(clean_doc_source if clean_doc_source.is_file() else out_mp4, run_work, sample_count=9)
     thumb_jpg = paths.output_dir / f"{stamp}_{slug}_doc.jpg"
     generate_thumbnail(
         best_frame,
