@@ -71,13 +71,13 @@ jobs:
           if [ "${{ inputs.publish_now }}" = "true" ]; then ARGS+=(--publish-now); fi
           campuncharted produce-doc "${ARGS[@]}"
 
-      - name: Upload preview artifacts (7-day retention)
-        if: always()
+      - name: Upload preview artifacts (dry-run only, 1-day retention)
+        if: always() && inputs.dry_run == true
         uses: actions/upload-artifact@v4
         with:
           name: doc-output-${{ github.run_id }}
           path: build_output/*
-          retention-days: 7
+          retention-days: 1
           if-no-files-found: ignore
 
       - name: Commit updated studio state

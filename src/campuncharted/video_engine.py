@@ -327,7 +327,7 @@ def render_short(
         out_mp4,
         total_duration=total_duration,
         crf=20,
-        preset="medium",
+        preset="veryfast",
     )
 
 
@@ -373,7 +373,7 @@ def render_documentary(
         out_mp4,
         total_duration=total_duration,
         crf=21,
-        preset="fast",
+        preset="veryfast",
     )
 
 
