@@ -16,17 +16,18 @@ from .content_engine import _generate_structured_with_fallback
 from .state_store import StateStore, atomic_write_json, normalize_key, read_json
 
 # Rotating high-signal English camping & wilderness search queries (2 run per day = only ~202 YouTube quota units!)
+# Note: videoDuration='short' already filters to short-form videos, so crisp 2-word terms catch 10-15 viral outliers/day.
 TREND_SEARCH_QUERIES: tuple[str, ...] = (
-    "camping mistakes survival tips #shorts",
-    "wild camping hidden spot nature #shorts",
-    "camping hacks bushcraft gear #shorts",
-    "solo camping extreme weather #shorts",
-    "backpacking survival rule wilderness #shorts",
-    "scariest sounds camping woods #shorts",
-    "free wild camping countries rules #shorts",
-    "winter camping hacks stay warm #shorts",
-    "campfire safety tips bushcraft #shorts",
-    "most extreme campsites on earth #shorts",
+    "camping tips",
+    "wild camping",
+    "camping hacks",
+    "survival camping",
+    "solo camping",
+    "winter camping",
+    "camping mistakes",
+    "bushcraft fire",
+    "backpacking gear",
+    "hidden campsites",
 )
 
 VALID_SERIES = (
