@@ -1,5 +1,25 @@
 {
-  "source": "migrated_v1_baseline",
+  "period": {
+    "start": "2026-10-19",
+    "end": "2026-11-18"
+  },
+  "channel_stats": {
+    "subscribers": 26,
+    "total_views": 32038,
+    "video_count": 241
+  },
+  "rolling_30d": {
+    "views": 2158,
+    "watch_minutes": 327.0,
+    "avg_view_duration_sec": 23.0,
+    "avg_view_percentage": 32.3,
+    "subscribers_gained": 24,
+    "subscribers_lost": 10,
+    "net_subscribers": 14,
+    "likes": 51,
+    "comments": 0
+  },
+  "series_metrics": {},
   "series_weights": {
     "CAMP_MISTAKES": 0.3,
     "WILD_STAYS": 0.25,
@@ -7,11 +27,80 @@
     "EXTREME_WEATHER_NATURE": 0.15,
     "TURKEY_AND_EURASIA_HIDDEN": 0.1
   },
-  "rolling_30d": {
-    "views": 11086,
-    "avg_view_percentage": 47.5,
-    "net_subscribers": 3
-  },
-  "summary_guidance": "Baseline v1 Shorts averaged 47.5% AVP due to short encyclopedia-style narration and slow visual cuts. Prioritize instant 2-second curiosity hooks, 35-48s escalating narratives, and bold survival/wild-place takeaways.",
-  "updated_at": "2026-11-19T11:49:58.004019+00:00"
+  "top_videos": [
+    {
+      "video_id": "JgrGBJRFwtM",
+      "title": "Gezer: Ancient Foothills and Biblical History | Judaean Mountains... #Shorts #Camp",
+      "series": "LEGACY",
+      "views": 114,
+      "avp": 106.2,
+      "avd": 31.0,
+      "net_subs": 0
+    },
+    {
+      "video_id": "VKxUcW8LSnQ",
+      "title": "Daintree, Australia: Ancient World Heritage Rainforest | Far North... #Shorts #Camp",
+      "series": "LEGACY",
+      "views": 112,
+      "avp": 84.6,
+      "avd": 13.0,
+      "net_subs": 0
+    },
+    {
+      "video_id": "J4h6myWqUCM",
+      "title": "Meteora: Monasteries atop giant sandstone pillars | Thessaly, Greece #Shorts #Camp",
+      "series": "LEGACY",
+      "views": 98,
+      "avp": 56.8,
+      "avd": 30.0,
+      "net_subs": 0
+    },
+    {
+      "video_id": "eolo2RKm-Zk",
+      "title": "Edirne: The Most Contested Frontier City on Earth | Edirne... #Shorts #Camp",
+      "series": "LEGACY",
+      "views": 91,
+      "avp": 88.4,
+      "avd": 10.0,
+      "net_subs": 0
+    },
+    {
+      "video_id": "Gdz0SchEX7s",
+      "title": "Konya: Exploring Central Anatolian Plateau History | Konya... #Shorts #Camp",
+      "series": "LEGACY",
+      "views": 81,
+      "avp": 26.8,
+      "avd": 19.0,
+      "net_subs": 0
+    },
+    {
+      "video_id": "IKQf-oZrcsw",
+      "title": "Lake Baikal: Inside Earth's Deepest Freshwater Basin | Siberia, Russia #Shorts #Camp",
+      "series": "LEGACY",
+      "views": 64,
+      "avp": 53.7,
+      "avd": 18.0,
+      "net_subs": 0
+    },
+    {
+      "video_id": "CB2i0kLWHEc",
+      "title": "Ranomafana National Park: Exploring Madagascar's Rainforest Trails... #Shorts #Camp",
+      "series": "LEGACY",
+      "views": 64,
+      "avp": 63.7,
+      "avd": 8.0,
+      "net_subs": 0
+    },
+    {
+      "video_id": "G3YDKzbQ7CA",
+      "title": "Paklenica: Ancient Canyons of Velebit | Zadar, Croatia #Shorts #Camp",
+      "series": "LEGACY",
+      "views": 63,
+      "avp": 43.2,
+      "avd": 9.0,
+      "net_subs": 0
+    }
+  ],
+  "summary_guidance": "Last 30d channel performance: 2158 views, 32.3% average view percentage, +14 net subscribers. Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations.",
+  "updated_at": "2026-11-20T19:14:00.902103+00:00"
 }
