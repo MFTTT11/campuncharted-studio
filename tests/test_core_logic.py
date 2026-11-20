@@ -307,3 +307,45 @@ def test_decode_json_secret_handles_all_playground_paste_variants() -> None:
     assert _decode_json_secret(sample_rt)["refresh_token"] == sample_rt
 
 
+def test_trend_radar_outlier_scoring_and_topic_blending(tmp_path: Path) -> None:
+    from campuncharted.state_store import atomic_write_json
+    from campuncharted.trend_radar import (
+        compute_outlier_score,
+        parse_iso8601_duration,
+        select_daily_trend_queries,
+    )
+
+    assert parse_iso8601_duration("PT48S") == 48
+    assert parse_iso8601_duration("PT1M15S") == 75
+    assert len(select_daily_trend_queries(day_of_year=10, count=2)) == 2
+
+    small_viral = compute_outlier_score(views=250_000, likes=12_000, comments=450, channel_subs=8_000, age_days=3.0)
+    big_average = compute_outlier_score(views=25_000, likes=500, comments=10, channel_subs=1_500_000, age_days=14.0)
+    assert small_viral["viral_score"] > big_average["viral_score"] * 2.0
+
+    # Verify pick_next_short_topic alternates trending_topics.json ideas with evergreen catalog
+    store = StateStore(tmp_path / "trend_state")
+    atomic_write_json(
+        store.state_dir / "trending_topics.json",
+        {
+            "topics": [
+                {
+                    "topic_id": "trend_winter_tent_candle_myth",
+                    "series": "CAMP_MISTAKES",
+                    "subject": "Does a Single Candle Really Heat a Freezing Winter Tent?",
+                    "angle_hook": "Why the viral candle-in-a-tent winter hack can create a silent hazard",
+                    "wiki_titles": ["Winter_camping"],
+                    "visual_queries": ["winter snow tent glowing night"],
+                    "mood": "CAMPFIRE_NIGHT",
+                }
+            ]
+        },
+    )
+    picked_1 = pick_next_short_topic(store)
+    assert picked_1.topic_id == "trend_winter_tent_candle_myth"
+    store.record_topic(topic_id=picked_1.topic_id, series=picked_1.series, title="T1", format_type="short")
+    picked_2 = pick_next_short_topic(store)
+    assert not picked_2.topic_id.startswith("trend_")
+
+
+

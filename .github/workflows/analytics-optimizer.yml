@@ -49,7 +49,7 @@ jobs:
           YOUTUBE_CHANNEL_ID: UCwzbmfB6P-s7RrZqHA1JCqw
         run: campuncharted verify-auth
 
-      - name: Optimize Series Weights & Backfill Multi-Language Subtitles
+      - name: Optimize Series Weights, Scan Live Viral Trends & Backfill Subtitles
         if: inputs.verify_only != true
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -59,6 +59,7 @@ jobs:
           YOUTUBE_CHANNEL_ID: UCwzbmfB6P-s7RrZqHA1JCqw
         run: |
           campuncharted optimize-analytics --lookback-days 30
+          campuncharted scan-trends --days-back 21
           campuncharted backfill-subtitles
 
       - name: Commit updated analytics & subtitle state

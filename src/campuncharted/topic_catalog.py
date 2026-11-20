@@ -670,6 +670,118 @@ SHORT_TOPICS: tuple[ShortTopic, ...] = (
         category_id=CATEGORY_TRAVEL_EVENTS,
         extra_tags=("lycian way", "turkey hiking", "long distance trail"),
     ),
+    # --- HIGH-DEMAND CAMPING LAWS, NIGHT SURVIVAL & PRO HACKS ---
+    ShortTopic(
+        topic_id="wild_nordic_freedom_to_roam",
+        series="WILD_STAYS",
+        subject="Allemansrätten — The Nordic Law That Lets You Wild Camp Almost Anywhere for Free",
+        angle_hook="The European countries where pitching your tent in the wild for free is a legal right",
+        wiki_titles=("Freedom_to_roam",),
+        visual_queries=("nordic pine forest tent lake", "norway fjord wild camping sunset", "sweden forest lake sunrise tent", "hiker mountain meadow scandinavia"),
+        mood="ALPINE_WIND",
+        category_id=CATEGORY_TRAVEL_EVENTS,
+        extra_tags=("wild camping", "free camping", "norway sweden"),
+    ),
+    ShortTopic(
+        topic_id="wild_us_blm_free_camping",
+        series="WILD_STAYS",
+        subject="Dispersed Public Land Camping — Millions of Acres of Legal Free Campsites",
+        angle_hook="How savvy campers sleep in jaw-dropping American canyons and forests completely free",
+        wiki_titles=("Dispersed_camping", "Bureau_of_Land_Management"),
+        visual_queries=("desert canyon camper tent sunset", "utah red rocks camping night", "mountain forest dirt road campsite", "overland camp sunrise wilderness"),
+        mood="CANYON_BREEZE",
+        category_id=CATEGORY_TRAVEL_EVENTS,
+        extra_tags=("free camping", "dispersed camping", "overlanding"),
+    ),
+    ShortTopic(
+        topic_id="mistake_burying_campfire_zombie_fire",
+        series="CAMP_MISTAKES",
+        subject="Why Burying Hot Campfire Coals With Dirt Causes Underground Root Fires",
+        angle_hook="Why throwing dirt over your campfire to put it out can ignite a forest days later",
+        wiki_titles=("Campfire", "Smouldering"),
+        visual_queries=("glowing campfire embers wood night", "pouring water over campfire smoke", "smoldering forest soil fire", "pine forest camp night"),
+        mood="CAMPFIRE_NIGHT",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("campfire safety", "wildfire prevention", "camping mistakes"),
+    ),
+    ShortTopic(
+        topic_id="nature_scary_forest_scream_red_fox",
+        series="EXTREME_WEATHER_NATURE",
+        subject="The Terrifying Human-Like Scream Solo Campers Hear in the Woods at 2 AM",
+        angle_hook="If you hear a blood-curdling scream near your tent at 2 AM, it is usually this tiny animal",
+        wiki_titles=("Red_fox",),
+        visual_queries=("dark misty forest night woods", "red fox forest twilight", "solo tent glowing night woods", "owl moonlit pine forest"),
+        mood="CAMPFIRE_NIGHT",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("solo camping", "forest sounds", "wildlife facts"),
+    ),
+    ShortTopic(
+        topic_id="mistake_ten_degree_rain_hypothermia",
+        series="CAMP_MISTAKES",
+        subject="Why Most Backcountry Hypothermia Happens at 10°C in Rain, Not -10°C in Snow",
+        angle_hook="Why a mild rainy afternoon catches more hikers off guard with hypothermia than deep winter",
+        wiki_titles=("Hypothermia", "Wind_chill"),
+        visual_queries=("rainy misty mountain hiker", "cold wind rain forest trail", "foggy highland mountain ridge", "camping tent heavy rain"),
+        mood="FOREST_RAIN",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("hypothermia", "rain hiking", "survival rules"),
+    ),
+    ShortTopic(
+        topic_id="mistake_grizzly_vs_black_bear_response",
+        series="CAMP_MISTAKES",
+        subject="Black Bear vs Grizzly Bear: Why Mixing Up the Survival Rule Can Be Fatal",
+        angle_hook="The 2-second shoulder clue that tells you whether to fight back or play dead with a bear",
+        wiki_titles=("Grizzly_bear", "American_black_bear"),
+        official_urls=("https://www.nps.gov/subjects/bears/safety.htm",),
+        visual_queries=("grizzly bear mountain forest", "black bear woodland trees", "hiker wilderness forest trail", "mountain pine forest wilderness"),
+        mood="ALPINE_WIND",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("bear safety", "hiking survival", "wildlife"),
+    ),
+    ShortTopic(
+        topic_id="hack_water_bottle_headlamp_lantern",
+        series="GEAR_AND_HACKS",
+        subject="The 2-Second Headlamp and Water Bottle Trick That Lights Up an Entire Tent",
+        angle_hook="Why experienced backpackers strap their headlamp backward around a clear water bottle",
+        wiki_titles=("Headlamp_(outdoor)", "Diffuse_reflection"),
+        visual_queries=("glowing tent interior night camp", "camping headlamp forest night", "cozy campsite twilight mountains", "night camping stars tent"),
+        mood="CAMPFIRE_NIGHT",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("camping hacks", "backpacking gear", "tent tips"),
+    ),
+    ShortTopic(
+        topic_id="hack_mylar_emergency_blanket_physics",
+        series="GEAR_AND_HACKS",
+        subject="Why Wrapping an Emergency Space Blanket Tightly Around Yourself Fails",
+        angle_hook="The tiny mistake with a $3 emergency foil blanket that stops it from keeping you warm",
+        wiki_titles=("Space_blanket", "Thermal_radiation"),
+        visual_queries=("cold snowy mountain hiker survival", "winter mountains mist sunset", "mountain rescue wilderness snow", "camping winter cold forest"),
+        mood="ALPINE_WIND",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("survival gear", "emergency blanket", "winter safety"),
+    ),
+    ShortTopic(
+        topic_id="wild_cliff_portaledge_camping",
+        series="WILD_STAYS",
+        subject="Portaledge Camping — Sleeping Suspended 3,000 Feet Up a Vertical Granite Cliff",
+        angle_hook="How big-wall climbers sleep peacefully in a hanging tent 3,000 feet above the valley floor",
+        wiki_titles=("Portaledge", "El_Capitan"),
+        visual_queries=("steep granite cliff rock climber", "yosemite granite wall sunrise", "dramatic mountain cliff clouds", "extreme climbing vertical wall"),
+        mood="ALPINE_WIND",
+        category_id=CATEGORY_TRAVEL_EVENTS,
+        extra_tags=("cliff camping", "portaledge", "extreme camping"),
+    ),
+    ShortTopic(
+        topic_id="hack_drying_wet_boots_camp",
+        series="GEAR_AND_HACKS",
+        subject="Why Putting Soaking Wet Hiking Boots Near the Campfire Ruins Them Overnight",
+        angle_hook="Never dry wet hiking boots beside a campfire—use this warm-stone expedition trick instead",
+        wiki_titles=("Hiking_boot",),
+        visual_queries=("hiker boots muddy forest trail", "campfire glowing evening camp", "mountain stream crossing hiker", "camping tent forest morning"),
+        mood="CAMPFIRE_NIGHT",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("hiking boots", "camping hacks", "backpacking tips"),
+    ),
 )
 
 
@@ -887,16 +999,46 @@ DOCUMENTARY_TOPICS: tuple[DocumentaryTopic, ...] = (
 )
 
 
+def _load_trending_short_topics(store: StateStore) -> list[ShortTopic]:
+    """Load fresh unused Short ideas discovered by the daily YouTube Trend Radar."""
+    from .state_store import read_json
+
+    data = read_json(store.state_dir / "trending_topics.json", {})
+    raw_list = data.get("topics") or []
+    topics: list[ShortTopic] = []
+    for row in raw_list:
+        if not isinstance(row, dict) or not row.get("topic_id") or not row.get("subject"):
+            continue
+        topics.append(
+            ShortTopic(
+                topic_id=str(row["topic_id"]),
+                series=str(row.get("series") or "CAMP_MISTAKES"),
+                subject=str(row["subject"]),
+                angle_hook=str(row.get("angle_hook") or row["subject"]),
+                wiki_titles=tuple(str(x) for x in (row.get("wiki_titles") or []) if x),
+                visual_queries=tuple(str(x) for x in (row.get("visual_queries") or []) if x),
+                location_name=str(row.get("location_name") or ""),
+                mood=str(row.get("mood") or "ALPINE_WIND"),
+                category_id=str(row.get("category_id") or CATEGORY_TRAVEL_EVENTS),
+                extra_tags=("camping", "outdoor tips", "wilderness"),
+            )
+        )
+    return topics
+
+
 def pick_next_short_topic(
     store: StateStore,
     *,
     series_override: str = "",
     topic_override: str = "",
 ) -> ShortTopic:
-    """Choose the next unused Short topic using analytics-weighted series rotation."""
+    """Choose the next unused Short topic blending live YouTube Trend Radar ideas + evergreen catalog."""
+    trending_pool = _load_trending_short_topics(store)
+    all_known = list(trending_pool) + list(SHORT_TOPICS)
+
     if topic_override:
         key = normalize_key(topic_override)
-        for topic in SHORT_TOPICS:
+        for topic in all_known:
             if normalize_key(topic.topic_id) == key or key in normalize_key(topic.subject):
                 return topic
         # Dynamic custom topic requested via workflow_dispatch
@@ -916,15 +1058,31 @@ def pick_next_short_topic(
             mood="EPIC_DISCOVERY",
         )
 
-    used_topics = {normalize_key(row.get("topic_id", "")) for row in store.get_topic_history()}
-    candidates = [
-        topic
-        for topic in SHORT_TOPICS
-        if normalize_key(topic.topic_id) not in used_topics
-        and (not topic.location_name or not store.is_location_uploaded(topic.location_name))
+    history = store.get_topic_history()
+    used_topics = {normalize_key(row.get("topic_id", "")) for row in history}
+    unused_trending = [
+        t
+        for t in trending_pool
+        if normalize_key(t.topic_id) not in used_topics
+        and (not t.location_name or not store.is_location_uploaded(t.location_name))
     ]
+    unused_evergreen = [
+        t
+        for t in SHORT_TOPICS
+        if normalize_key(t.topic_id) not in used_topics
+        and (not t.location_name or not store.is_location_uploaded(t.location_name))
+    ]
+
+    # Blend 50% live viral trend radar ideas + 50% evergreen catalog (prefer trend if previous short was evergreen)
+    recent_shorts = [r for r in history if r.get("format") == "short"]
+    last_was_trend = bool(recent_shorts and str(recent_shorts[-1].get("topic_id", "")).startswith("trend_"))
+    if unused_trending and not last_was_trend:
+        candidates = unused_trending
+    else:
+        candidates = unused_evergreen or unused_trending
+
     if series_override:
-        filtered = [t for t in candidates if t.series == series_override.upper()]
+        filtered = [t for t in (unused_trending + unused_evergreen) if t.series == series_override.upper()]
         if filtered:
             candidates = filtered
 
