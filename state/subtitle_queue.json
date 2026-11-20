@@ -1,7 +1,109 @@
 {
   "quota": {
-    "2026-11-20": 0
+    "2026-11-20": 1650
   },
-  "videos": {},
-  "updated_at": "2026-11-20T19:14:02.016384+00:00"
+  "videos": {
+    "KNkAeiRp3so": {
+      "title": "Why Outdoor Guides Call Cotton the Silent Killer",
+      "description": "Wearing a soaked cotton hoodie on a chilly trail can drain your body heat faster than you realize. Outdoor experts rely on wool and synthetic layers to survive sudden temperature drops. What base layer do you wear on cold hikes?\n\nSubscribe to @CampUncharted for real outdoor stories, backcountry safety, and Earth's wildest places.\n\nReferences:\n- https://en.wikipedia.org/wiki/Hypothermia\n- https://en.wikipedia.org/wiki/Wool\n\n#CampingMistakes #OutdoorSurvival #HikingGear #Hypothermia #Shorts",
+      "cues": [
+        [
+          0.0,
+          3.91,
+          "That ordinary cotton hoodie in your backpack might be your most dangerous"
+        ],
+        [
+          3.922,
+          4.867,
+          "mistake outdoors"
+        ],
+        [
+          4.987,
+          9.014,
+          "When you sweat cotton absorbs moisture like a sponge and holds twenty"
+        ],
+        [
+          9.014,
+          9.621,
+          "times its weight"
+        ],
+        [
+          9.741,
+          14.516,
+          "Unlike wool wet cotton flattens out completely destroying its air pockets"
+        ],
+        [
+          14.528,
+          15.299,
+          "and insulation"
+        ],
+        [
+          15.419,
+          19.33,
+          "Chilly wind then pulls heat from wet fabric twenty-five times faster than"
+        ],
+        [
+          19.341,
+          19.909,
+          "dry skin"
+        ],
+        [
+          20.029,
+          23.413,
+          "When core body temperature dips below ninety-five degrees Fahrenheit"
+        ],
+        [
+          23.939,
+          25.292,
+          "violent shivering sets in"
+        ],
+        [
+          25.412,
+          30.597,
+          "If cooling continues, shivering stops completely and dangerous mental confusion takes over."
+        ],
+        [
+          30.717,
+          34.499,
+          "Merino wool and synthetic fleece continue trapping body heat even when"
+        ],
+        [
+          34.51,
+          35.142,
+          "thoroughly soaked"
+        ],
+        [
+          35.262,
+          38.951,
+          "Ditching cotton base layers for wool is the simplest survival rule in"
+        ],
+        [
+          38.962,
+          39.603,
+          "the backcountry"
+        ],
+        [
+          39.723,
+          42.105,
+          "Would you still wear a cotton hoodie on a cold trail?"
+        ]
+      ],
+      "done_langs": [
+        "de",
+        "en",
+        "es",
+        "tr"
+      ],
+      "localized_langs": [
+        "de",
+        "es",
+        "tr"
+      ],
+      "pinned_comment": "Have you ever been caught in soaked clothing on a freezing trail?",
+      "comment_posted": true,
+      "publish_at": "",
+      "queued_at": "2026-11-20T19:25:44.174455+00:00"
+    }
+  },
+  "updated_at": "2026-11-20T19:27:03.069016+00:00"
 }
