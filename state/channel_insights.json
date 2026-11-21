@@ -1,22 +1,22 @@
 {
   "period": {
-    "start": "2026-10-19",
-    "end": "2026-11-18"
+    "start": "2026-10-20",
+    "end": "2026-11-19"
   },
   "channel_stats": {
     "subscribers": 26,
-    "total_views": 32038,
+    "total_views": 32078,
     "video_count": 242
   },
   "rolling_30d": {
-    "views": 2205,
-    "watch_minutes": 337.0,
-    "avg_view_duration_sec": 23.0,
-    "avg_view_percentage": 32.2,
+    "views": 2024,
+    "watch_minutes": 319.0,
+    "avg_view_duration_sec": 24.0,
+    "avg_view_percentage": 33.2,
     "subscribers_gained": 24,
     "subscribers_lost": 22,
     "net_subscribers": 2,
-    "likes": 51,
+    "likes": 18,
     "comments": 0
   },
   "series_metrics": {},
@@ -68,18 +68,9 @@
       "video_id": "Gdz0SchEX7s",
       "title": "Konya: Exploring Central Anatolian Plateau History | Konya... #Shorts #Camp",
       "series": "LEGACY",
-      "views": 83,
+      "views": 81,
       "avp": 26.8,
       "avd": 19.0,
-      "net_subs": 0
-    },
-    {
-      "video_id": "CB2i0kLWHEc",
-      "title": "Ranomafana National Park: Exploring Madagascar's Rainforest Trails... #Shorts #Camp",
-      "series": "LEGACY",
-      "views": 64,
-      "avp": 63.7,
-      "avd": 8.0,
       "net_subs": 0
     },
     {
@@ -92,6 +83,15 @@
       "net_subs": 0
     },
     {
+      "video_id": "CB2i0kLWHEc",
+      "title": "Ranomafana National Park: Exploring Madagascar's Rainforest Trails... #Shorts #Camp",
+      "series": "LEGACY",
+      "views": 64,
+      "avp": 63.7,
+      "avd": 8.0,
+      "net_subs": 0
+    },
+    {
       "video_id": "G3YDKzbQ7CA",
       "title": "Paklenica: Ancient Canyons of Velebit | Zadar, Croatia #Shorts #Camp",
       "series": "LEGACY",
@@ -101,11 +101,11 @@
       "net_subs": 0
     }
   ],
-  "summary_guidance": "Last 30d channel performance: 2205 views, 32.2% average view percentage, +2 net subscribers. Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations. Live YouTube trends: Ultra-short bushcraft and practical fire-starting hacks gain immediate retention by demonstrating immediate, tangible outdoor utility in under 15 seconds. | Visual contrast between fatal outdoor mistakes (e.g. wet cotton clothing, wrong tent orientation) and high-survivaity tactics drives strong bookmarking and sharing behavior.",
-  "updated_at": "2026-11-20T20:23:18.682097+00:00",
+  "summary_guidance": "Last 30d channel performance: 2024 views, 33.2% average view percentage, +2 net subscribers. Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations. Live YouTube trends: Ultra-short, high-utility survival hacks and fuel-efficient heating techniques trigger massive save and share rates due to instant practical value. | Atmospheric contrast videos pairing extreme weather, frozen forests, or remote rain with cozy camp setups drive exceptionally high retention and watch time.",
+  "updated_at": "2026-11-21T13:11:17.585734+00:00",
   "live_youtube_trends": [
-    "Ultra-short bushcraft and practical fire-starting hacks gain immediate retention by demonstrating immediate, tangible outdoor utility in under 15 seconds.",
-    "Visual contrast between fatal outdoor mistakes (e.g. wet cotton clothing, wrong tent orientation) and high-survivaity tactics drives strong bookmarking and sharing behavior.",
-    "Hidden Eurasian alpine locations with untouched landscapes hook viewers looking for secluded, legal wild-camping destinations."
+    "Ultra-short, high-utility survival hacks and fuel-efficient heating techniques trigger massive save and share rates due to instant practical value.",
+    "Atmospheric contrast videos pairing extreme weather, frozen forests, or remote rain with cozy camp setups drive exceptionally high retention and watch time.",
+    "Secret location discovery hooks framing backcountry spots as undiscovered paradises tap into deep audience wanderlust and curiosity."
   ]
 }

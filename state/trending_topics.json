@@ -1,26 +1,138 @@
 {
-  "updated_at": "2026-11-20T20:23:18.675286+00:00",
+  "updated_at": "2026-11-21T13:11:17.582793+00:00",
   "patterns": [
-    "Ultra-short bushcraft and practical fire-starting hacks gain immediate retention by demonstrating immediate, tangible outdoor utility in under 15 seconds.",
-    "Visual contrast between fatal outdoor mistakes (e.g. wet cotton clothing, wrong tent orientation) and high-survivaity tactics drives strong bookmarking and sharing behavior.",
-    "Hidden Eurasian alpine locations with untouched landscapes hook viewers looking for secluded, legal wild-camping destinations."
+    "Ultra-short, high-utility survival hacks and fuel-efficient heating techniques trigger massive save and share rates due to instant practical value.",
+    "Atmospheric contrast videos pairing extreme weather, frozen forests, or remote rain with cozy camp setups drive exceptionally high retention and watch time.",
+    "Secret location discovery hooks framing backcountry spots as undiscovered paradises tap into deep audience wanderlust and curiosity."
   ],
   "recent_outliers": [
     {
-      "video_id": "vuGcKxAn7Po",
-      "title": "Survive in the Wild: Smart Forest SurvivalSkills#survival#useful#jdeas#smart#shorts#camping",
-      "channel_title": "Survival Power Man",
-      "channel_subs": 1460,
-      "duration_sec": 6,
-      "views": 61165,
-      "likes": 207,
-      "comments": 0,
-      "age_days": 9.3,
-      "query": "campfire safety tips bushcraft #shorts",
-      "views_per_day": 6557.2,
-      "outlier_ratio": 41.89,
-      "engagement_pct": 0.34,
-      "viral_score": 28.35
+      "video_id": "kb2RcXuPWt8",
+      "title": "We Found a Hidden Mountain Paradise and Turned It Into Our Dream Fishing Camp! 🎣🏕️",
+      "channel_title": "Ikan Hunters",
+      "channel_subs": 95200,
+      "duration_sec": 177,
+      "views": 1017105,
+      "likes": 18175,
+      "comments": 38,
+      "age_days": 3.9,
+      "query": "wild camping",
+      "views_per_day": 261996.3,
+      "outlier_ratio": 10.68,
+      "engagement_pct": 1.8,
+      "viral_score": 50.2
+    },
+    {
+      "video_id": "vxKJEgoQA9Q",
+      "title": "Prepping tips | Rocket stove #prepping #survival #campinglife #emergency",
+      "channel_title": "Smallholding UK",
+      "channel_subs": 14400,
+      "duration_sec": 173,
+      "views": 853626,
+      "likes": 20542,
+      "comments": 1129,
+      "age_days": 14.8,
+      "query": "camping tips",
+      "views_per_day": 57683.1,
+      "outlier_ratio": 59.28,
+      "engagement_pct": 2.8,
+      "viral_score": 50.14
+    },
+    {
+      "video_id": "cYVYRwVusV0",
+      "title": "Part 116  ✅ Survival Skills:Smart idea and useful in Forest #camping #outdoors #survival #shorts",
+      "channel_title": "Hridoy Fix",
+      "channel_subs": 205000,
+      "duration_sec": 85,
+      "views": 8978486,
+      "likes": 108632,
+      "comments": 1795,
+      "age_days": 19.5,
+      "query": "camping tips",
+      "views_per_day": 460762.4,
+      "outlier_ratio": 43.8,
+      "engagement_pct": 1.27,
+      "viral_score": 48.71
+    },
+    {
+      "video_id": "785zL94ychU",
+      "title": "Cooking a Delicious Meal Deep in the Forest! 🤤🔥🌲 | Wild Camping #Shorts",
+      "channel_title": "Raw Nature Camp",
+      "channel_subs": 6120,
+      "duration_sec": 165,
+      "views": 3548473,
+      "likes": 18326,
+      "comments": 85,
+      "age_days": 9.1,
+      "query": "wild camping",
+      "views_per_day": 392004.0,
+      "outlier_ratio": 579.82,
+      "engagement_pct": 0.52,
+      "viral_score": 42.84
+    },
+    {
+      "video_id": "ZP1NcRg50UA",
+      "title": "Survival Skills: SMART idea and USEFUL in forest #bushcraft #camping #outdoors #survival",
+      "channel_title": "Macarong",
+      "channel_subs": 5040,
+      "duration_sec": 13,
+      "views": 4364822,
+      "likes": 18470,
+      "comments": 5,
+      "age_days": 12.4,
+      "query": "camping tips",
+      "views_per_day": 352518.2,
+      "outlier_ratio": 866.04,
+      "engagement_pct": 0.42,
+      "viral_score": 41.79
+    },
+    {
+      "video_id": "lIwjArC7zXo",
+      "title": "Survival Skills: MUST KNOW trick in the Forest #survival #camping #outdoors",
+      "channel_title": "FaceLab",
+      "channel_subs": 26500,
+      "duration_sec": 26,
+      "views": 387522,
+      "likes": 2052,
+      "comments": 1,
+      "age_days": 2.5,
+      "query": "camping tips",
+      "views_per_day": 152347.3,
+      "outlier_ratio": 14.62,
+      "engagement_pct": 0.53,
+      "viral_score": 39.74
+    },
+    {
+      "video_id": "frPW_r3wJ40",
+      "title": "Survival Skills: SMART idea and USEFUL in forest XYLITOL #bushcraft #camping #outdoors #survival",
+      "channel_title": "Namvaryo88",
+      "channel_subs": 15100,
+      "duration_sec": 11,
+      "views": 1707218,
+      "likes": 5498,
+      "comments": 30,
+      "age_days": 7.6,
+      "query": "camping tips",
+      "views_per_day": 225811.3,
+      "outlier_ratio": 113.06,
+      "engagement_pct": 0.33,
+      "viral_score": 39.68
+    },
+    {
+      "video_id": "zYQQ8H8CuzU",
+      "title": "Survival Skills: SMART idea and USEFUL in forest #bushcraft #camping #outdoors #survival",
+      "channel_title": "Macarong",
+      "channel_subs": 5040,
+      "duration_sec": 17,
+      "views": 2472014,
+      "likes": 10120,
+      "comments": 7,
+      "age_days": 13.4,
+      "query": "camping tips",
+      "views_per_day": 184724.9,
+      "outlier_ratio": 490.48,
+      "engagement_pct": 0.41,
+      "viral_score": 39.59
     }
   ],
   "topics": [
@@ -107,6 +219,69 @@
       "category_id": "27",
       "inspired_by_pattern": "Counter-intuitive survival science explaining unexpected physical hazards in the wild.",
       "discovered_at": "2026-11-20T20:23:18.675286+00:00"
+    },
+    {
+      "topic_id": "trend_rocket_stove_physics",
+      "series": "GEAR_AND_HACKS",
+      "subject": "Draft physics behind twig rocket stoves for off-grid winter survival warmth",
+      "angle_hook": "Why burning twigs inside a vertical L-pipe burns twice as hot as an open campfire using eighty percent less fuel.",
+      "wiki_titles": [
+        "Rocket_stove",
+        "Combustion"
+      ],
+      "visual_queries": [
+        "rocket stove camping",
+        "twig fire burning",
+        "outdoor cooking firewood",
+        "winter survival fire"
+      ],
+      "location_name": "",
+      "mood": "CAMPFIRE_NIGHT",
+      "category_id": "27",
+      "inspired_by_pattern": "High-utility off-grid heating hacks that explain thermal efficiency.",
+      "discovered_at": "2026-11-21T13:11:17.582793+00:00"
+    },
+    {
+      "topic_id": "trend_hypothermia_shelter_mistake",
+      "series": "CAMP_MISTAKES",
+      "subject": "Ground insulation failure causing conduction heat loss during freeze camping",
+      "angle_hook": "Sleeping directly on frozen soil steals body heat sixty-four times faster than cold air, rendering expensive sleeping bags ineffective.",
+      "wiki_titles": [
+        "Hypothermia",
+        "Thermal_conduction"
+      ],
+      "visual_queries": [
+        "winter tent camping",
+        "sleeping bag forest",
+        "snow camping frost",
+        "pine needle ground bed"
+      ],
+      "location_name": "",
+      "mood": "FOREST_RAIN",
+      "category_id": "27",
+      "inspired_by_pattern": "High-stakes backcountry mistakes grounded in thermal science.",
+      "discovered_at": "2026-11-21T13:11:17.582793+00:00"
+    },
+    {
+      "topic_id": "trend_tarp_wind_dynamics",
+      "series": "EXTREME_WEATHER_NATURE",
+      "subject": "Aerodynamic plow-point tarp configuration for surviving high-wind mountain storms",
+      "angle_hook": "When gale-force winds hit your ridge camp, pitching a square tarp into an asymmetric plow-point diverts wind overhead instead of snapping stakes.",
+      "wiki_titles": [
+        "Tarp",
+        "Wind_shear"
+      ],
+      "visual_queries": [
+        "tarp shelter storm wind",
+        "mountain tent gale wind",
+        "camping ridge survival",
+        "bushcraft tarp pitch"
+      ],
+      "location_name": "",
+      "mood": "CANYON_BREEZE",
+      "category_id": "27",
+      "inspired_by_pattern": "Fast visual bushcraft shelter tips designed for survival under stress.",
+      "discovered_at": "2026-11-21T13:11:17.582793+00:00"
     }
   ]
 }
