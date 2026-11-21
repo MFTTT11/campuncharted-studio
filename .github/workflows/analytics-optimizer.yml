@@ -2,8 +2,8 @@ name: Analytics Optimizer & Subtitle Backfill (Daily)
 
 on:
   schedule:
-    # Daily at 05:00 UTC: pull 30-day retention analytics, rebalance series weights, backfill i18n subtitles
-    - cron: '0 5 * * *'
+    # Daily at 05:17 UTC (off-minute): pull 30-day retention analytics, scan viral trends, backfill i18n subtitles
+    - cron: '17 5 * * *'
   workflow_dispatch:
     inputs:
       verify_only:

@@ -2,11 +2,11 @@ name: Shorts Factory (3x Daily)
 
 on:
   schedule:
-    # Economic quota-saver mode (Nov 20-30): 1 Short/day at 15:00 UTC (~35 min total for rest of Nov)
-    - cron: '0 15 20-30 11 *'
+    # Economic quota-saver mode (Nov 20-30): 1 Short/day at 15:23 UTC (off-minute avoids top-of-hour GH cron drops)
+    - cron: '23 15 20-30 11 *'
     # Full speed (auto-resumes Dec 1 after monthly 2,000-min quota reset): 3 Shorts/day
-    - cron: '0 7,13,19 * 1-10,12 *'
-    - cron: '0 7,13,19 1-19 11 *'
+    - cron: '23 7,13,19 * 1-10,12 *'
+    - cron: '23 7,13,19 1-19 11 *'
   workflow_dispatch:
     inputs:
       dry_run:

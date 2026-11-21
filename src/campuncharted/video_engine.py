@@ -280,7 +280,7 @@ def _finalize_master(
             str(out_mp4),
         ],
         check=True,
-        timeout=600,
+        timeout=1800,
     )
     return out_mp4
 
@@ -373,7 +373,7 @@ def render_documentary(
         out_mp4,
         total_duration=total_duration,
         crf=21,
-        preset="veryfast",
+        preset="superfast",
     )
 
 
