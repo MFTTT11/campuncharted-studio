@@ -37,14 +37,14 @@ SUBTITLE_LANGUAGES = {
 # Keeps 8,200+ units always reserved for 3 Shorts (4,800) + 1 Documentary (1,600) + thumbnails.
 DAILY_LANGUAGE_QUOTA_BUDGET = 1800
 
-# High-quality Gemini model preference (latest 3.x models first — 2.5 is unavailable to new keys!)
+# High-quality Gemini model preference (active 3.x models first; 2.5 is retired for new keys!)
 GEMINI_PREFERRED_MODELS = (
     "gemini-3.5-flash",
+    "gemini-3.7-flash",
     "gemini-3.8-flash",
     "gemini-3.0-flash",
     "gemini-3.1-pro-preview",
-    "gemini-2.5-flash",
-    "gemini-2.5-pro",
+    "gemini-3.5-flash-lite",
 )
 
 # High-retention natural Edge-TTS narration voices

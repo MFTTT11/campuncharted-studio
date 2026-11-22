@@ -112,6 +112,9 @@ def list_candidate_gemini_models(client: genai.Client) -> list[str]:
             and "audio" not in lower
             and "tts" not in lower
             and "embedding" not in lower
+            and "omni" not in lower
+            and not lower.startswith("gemini-2.")
+            and not lower.startswith("gemini-1.")
             and (not actions or "generateContent" in actions)
         ):
             names.append(name)
@@ -127,16 +130,16 @@ def list_candidate_gemini_models(client: genai.Client) -> list[str]:
     # 1. Exact/prefix matches against GEMINI_PREFERRED_MODELS in newest-first order
     for preferred in GEMINI_PREFERRED_MODELS:
         for name in names:
-            if name == preferred or (preferred in name and "lite" not in name.lower()):
+            if name == preferred or (preferred in name and ("lite" in preferred or "lite" not in name.lower())):
                 _add(name)
 
-    # 2. Any other newer non-lite Flash or Pro models (sorted reverse so 4.x/3.x come before 2.x)
+    # 2. Any other newer non-lite Flash or Pro models (sorted reverse so 4.x/3.x come before older)
     for name in sorted(names, reverse=True):
         lower = name.lower()
         if ("flash" in lower or "pro" in lower) and "lite" not in lower:
             _add(name)
 
-    # 3. Last-resort fallback to lite models only if every full model is unavailable
+    # 3. Last-resort fallback to lite models only if every full model is experiencing a 503 spike
     for name in sorted(names, reverse=True):
         if "flash" in name.lower():
             _add(name)
@@ -158,48 +161,55 @@ def _generate_structured_with_fallback(
     schema: type[BaseModel],
     temperature: float,
 ) -> tuple[str, Any]:
-    """Call Gemini structured output with automatic fallback if a model returns 404/429/503."""
+    """Call Gemini structured output with multi-model fallback + 2-round backoff for temporary 503/504 spikes."""
+    import time
+
     candidates = list_candidate_gemini_models(client)[:6]
     last_err: Exception | None = None
-    for model_name in candidates:
-        try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config={
-                    "response_mime_type": "application/json",
-                    "response_schema": schema,
-                    "temperature": temperature,
-                },
-            )
-            parsed = schema.model_validate_json(response.text)
-            print(f"[GEMINI] Generated {schema.__name__} using model: {model_name}", flush=True)
-            return model_name, parsed
-        except Exception as err:
-            last_err = err
-            msg = str(err)
-            if any(
-                code in msg
-                for code in (
-                    "404",
-                    "NOT_FOUND",
-                    "429",
-                    "RESOURCE_EXHAUSTED",
-                    "500",
-                    "502",
-                    "503",
-                    "504",
-                    "UNAVAILABLE",
-                    "DEADLINE_EXCEEDED",
-                    "INTERNAL",
-                    "403",
-                    "timed out",
-                    "Timeout",
+    for round_idx in range(3):
+        if round_idx > 0:
+            wait = 10 * round_idx
+            print(f"[GEMINI] All models had temporary spikes; retrying round {round_idx + 1}/3 after {wait}s...", flush=True)
+            time.sleep(wait)
+        for model_name in candidates:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config={
+                        "response_mime_type": "application/json",
+                        "response_schema": schema,
+                        "temperature": temperature,
+                    },
                 )
-            ):
-                print(f"[GEMINI] Model '{model_name}' unavailable ({msg[:140]}); trying next model...", flush=True)
-                continue
-            raise
+                parsed = schema.model_validate_json(response.text)
+                print(f"[GEMINI] Generated {schema.__name__} using model: {model_name}", flush=True)
+                return model_name, parsed
+            except Exception as err:
+                last_err = err
+                msg = str(err)
+                if any(
+                    code in msg
+                    for code in (
+                        "404",
+                        "NOT_FOUND",
+                        "429",
+                        "RESOURCE_EXHAUSTED",
+                        "500",
+                        "502",
+                        "503",
+                        "504",
+                        "UNAVAILABLE",
+                        "DEADLINE_EXCEEDED",
+                        "INTERNAL",
+                        "403",
+                        "timed out",
+                        "Timeout",
+                    )
+                ):
+                    print(f"[GEMINI] Model '{model_name}' unavailable ({msg[:140]}); trying next model...", flush=True)
+                    continue
+                raise
     raise RuntimeError(f"All Gemini models failed ({candidates}): {last_err}")
 
 
