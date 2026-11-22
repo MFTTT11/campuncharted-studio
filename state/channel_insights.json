@@ -1,22 +1,22 @@
 {
   "period": {
-    "start": "2026-10-20",
-    "end": "2026-11-19"
+    "start": "2026-10-21",
+    "end": "2026-11-20"
   },
   "channel_stats": {
     "subscribers": 26,
-    "total_views": 32078,
-    "video_count": 242
+    "total_views": 32120,
+    "video_count": 243
   },
   "rolling_30d": {
-    "views": 2024,
-    "watch_minutes": 319.0,
+    "views": 1948,
+    "watch_minutes": 312.0,
     "avg_view_duration_sec": 24.0,
-    "avg_view_percentage": 33.2,
+    "avg_view_percentage": 33.0,
     "subscribers_gained": 24,
     "subscribers_lost": 22,
     "net_subscribers": 2,
-    "likes": 18,
+    "likes": 15,
     "comments": 0
   },
   "series_metrics": {},
@@ -41,9 +41,9 @@
       "video_id": "VKxUcW8LSnQ",
       "title": "Daintree, Australia: Ancient World Heritage Rainforest | Far North... #Shorts #Camp",
       "series": "LEGACY",
-      "views": 112,
-      "avp": 84.6,
-      "avd": 13.0,
+      "views": 116,
+      "avp": 80.1,
+      "avd": 12.0,
       "net_subs": 0
     },
     {
@@ -68,18 +68,9 @@
       "video_id": "Gdz0SchEX7s",
       "title": "Konya: Exploring Central Anatolian Plateau History | Konya... #Shorts #Camp",
       "series": "LEGACY",
-      "views": 81,
-      "avp": 26.8,
+      "views": 74,
+      "avp": 26.7,
       "avd": 19.0,
-      "net_subs": 0
-    },
-    {
-      "video_id": "IKQf-oZrcsw",
-      "title": "Lake Baikal: Inside Earth's Deepest Freshwater Basin | Siberia, Russia #Shorts #Camp",
-      "series": "LEGACY",
-      "views": 64,
-      "avp": 53.7,
-      "avd": 18.0,
       "net_subs": 0
     },
     {
@@ -99,13 +90,22 @@
       "avp": 43.2,
       "avd": 9.0,
       "net_subs": 0
+    },
+    {
+      "video_id": "GRl4Xiam3NA",
+      "title": "Kayseri: Mount Erciyes and Autumn Forests | Central Anatolia, Turkey #Shorts #Camp",
+      "series": "LEGACY",
+      "views": 45,
+      "avp": 31.4,
+      "avd": 20.0,
+      "net_subs": 0
     }
   ],
-  "summary_guidance": "Last 30d channel performance: 2024 views, 33.2% average view percentage, +2 net subscribers. Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations. Live YouTube trends: Ultra-short, high-utility survival hacks and fuel-efficient heating techniques trigger massive save and share rates due to instant practical value. | Atmospheric contrast videos pairing extreme weather, frozen forests, or remote rain with cozy camp setups drive exceptionally high retention and watch time.",
-  "updated_at": "2026-11-21T13:11:17.585734+00:00",
+  "summary_guidance": "Last 30d channel performance: 1948 views, 33.0% average view percentage, +2 net subscribers. Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations. Live YouTube trends: Ultra-simple visual bushcraft hacks (e.g., quick resource extraction or ingenious low-tool solutions) capture massive initial click-throughs. | Counter-intuitive outdoor safety facts that challenge common camping instincts drive exceptionally high comment engagement and shares.",
+  "updated_at": "2026-11-22T10:35:34.209183+00:00",
   "live_youtube_trends": [
-    "Ultra-short, high-utility survival hacks and fuel-efficient heating techniques trigger massive save and share rates due to instant practical value.",
-    "Atmospheric contrast videos pairing extreme weather, frozen forests, or remote rain with cozy camp setups drive exceptionally high retention and watch time.",
-    "Secret location discovery hooks framing backcountry spots as undiscovered paradises tap into deep audience wanderlust and curiosity."
+    "Ultra-simple visual bushcraft hacks (e.g., quick resource extraction or ingenious low-tool solutions) capture massive initial click-throughs.",
+    "Counter-intuitive outdoor safety facts that challenge common camping instincts drive exceptionally high comment engagement and shares.",
+    "Fast-paced problem-solving in wet or extreme environments generates strong retention by demonstrating immediate real-world utility."
   ]
 }
