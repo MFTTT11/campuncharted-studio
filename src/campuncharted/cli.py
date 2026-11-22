@@ -116,26 +116,28 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
     )
     print(f"[SHORT] Narration synthesized: {audio_duration:.2f}s across {len(beats)} beats", flush=True)
 
-    # 2. Procedural stereo nature bed + broadcast ducking & -14 LUFS loudness
+    # 2. Procedural stereo nature bed + snappy loop tail + broadcast ducking & -14 LUFS loudness
     ambience_wav = generate_nature_soundscape(
         run_work / "audio" / "ambience.wav",
-        audio_duration + 0.5,
+        audio_duration + 0.2,
         mood=topic.mood,
         include_hook_swell=True,
+        loop_snappy=True,
     )
     mixed_audio = mix_narration_and_ambience(
         narration_wav,
         ambience_wav,
         run_work / "audio" / "mixed.m4a",
         duration_seconds=audio_duration,
-        ambience_volume=0.22,
+        ambience_volume=0.23,
     )
 
-    # 3. Karaoke ASS + English SRT
+    # 3. Karaoke ASS + 0.0-1.85s Hook Banner scroll-stopper + English SRT
     ass_path = generate_shorts_karaoke_ass(
         beats,
         run_work / "captions.ass",
         pill_label=script.pill_label,
+        hook_banner=script.thumbnail_hook,
         width=SHORTS_WIDTH,
         height=SHORTS_HEIGHT,
     )
@@ -171,7 +173,7 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
         out_mp4,
         expected_width=SHORTS_WIDTH,
         expected_height=SHORTS_HEIGHT,
-        min_duration=18.0,
+        min_duration=15.0,
         work_dir=run_work,
     )
     print(f"[SHORT] QC PASSED: {qc}", flush=True)

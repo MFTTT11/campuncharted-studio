@@ -63,34 +63,114 @@ def create_gradient_scrim(
     return out_png
 
 
+def rank_clips_for_hook(clips: list[MediaAsset], work_dir: Path) -> list[MediaAsset]:
+    """Order clips so the brightest, sharpest, highest-contrast clip ALWAYS leads at t=0.0s."""
+    playable = [c for c in clips if c.local_path and c.local_path.is_file() and c.duration > 0.5]
+    if len(playable) <= 1:
+        return playable
+
+    probe_dir = work_dir / "hook_rank"
+    probe_dir.mkdir(parents=True, exist_ok=True)
+    scored: list[tuple[float, MediaAsset]] = []
+    for idx, asset in enumerate(playable):
+        assert asset.local_path is not None
+        frame_png = probe_dir / f"c_{idx:02d}.png"
+        score = 0.0
+        try:
+            ts = min(1.0, max(0.1, asset.duration * 0.2))
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-y",
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-ss",
+                    f"{ts:.2f}",
+                    "-i",
+                    str(asset.local_path),
+                    "-frames:v",
+                    "1",
+                    str(frame_png),
+                ],
+                check=True,
+                timeout=15,
+            )
+            if frame_png.is_file():
+                with Image.open(frame_png) as raw:
+                    rgb = raw.convert("RGB").resize((240, 240), Image.Resampling.BILINEAR)
+                    hsv = rgb.convert("HSV")
+                    rgb_stat = ImageStat.Stat(rgb)
+                    hsv_stat = ImageStat.Stat(hsv)
+                    brightness = sum(rgb_stat.mean) / 3.0
+                    contrast = sum(rgb_stat.stddev) / 3.0
+                    saturation = hsv_stat.mean[1]
+                    # Strongly penalize murky dark clips (<55 mean brightness) from opening a Short!
+                    dark_penalty = (55.0 - brightness) * 2.5 if brightness < 55.0 else 0.0
+                    blowout_penalty = (brightness - 215.0) * 1.5 if brightness > 215.0 else 0.0
+                    portrait_bonus = 25.0 if asset.is_portrait else 0.0
+                    score = (contrast * 1.2) + (saturation * 0.8) + portrait_bonus - dark_penalty - blowout_penalty
+        except (OSError, subprocess.SubprocessError):
+            score = 0.0
+        scored.append((score, asset))
+
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    return [asset for _, asset in scored]
+
+
 def plan_visual_cuts(
     clips: list[MediaAsset],
     total_duration: float,
     *,
     target_cut_seconds: float = 3.1,
     min_cut_seconds: float = 2.4,
+    front_loaded_hook: bool = False,
 ) -> list[VisualCut]:
-    """Build a dynamic cut schedule rotating across distinct clips with non-overlapping sub-ranges."""
+    """Build a dynamic cut schedule rotating across distinct clips with non-overlapping sub-ranges.
+
+    When `front_loaded_hook=True` (Shorts), the opening ~6 seconds use rapid 1.7s snap-cuts
+    to freeze mobile scrollers before settling into brisk ~2.4s escalation cuts.
+    """
     playable = [c for c in clips if c.local_path and c.local_path.is_file() and c.duration > 0.5]
     if not playable:
         raise ValueError("No playable local video clips available for rendering.")
 
-    cut_count = max(1, int(round(total_duration / target_cut_seconds)))
-    base_dur = total_duration / cut_count
-    if base_dur < min_cut_seconds and cut_count > 1:
-        cut_count = max(1, int(math.floor(total_duration / min_cut_seconds)))
+    durations: list[float] = []
+    if front_loaded_hook and total_duration > 6.5:
+        elapsed = 0.0
+        # 3 rapid 1.75s scroll-stopping cuts across the opening ~5.25s hook window
+        while elapsed < 5.2 and (total_duration - elapsed) > 3.2:
+            durations.append(1.75)
+            elapsed += 1.75
+        tail = max(0.8, total_duration - elapsed)
+        body_cuts = max(1, int(round(tail / target_cut_seconds)))
+        body_dur = tail / body_cuts
+        if body_dur < min_cut_seconds and body_cuts > 1:
+            body_cuts = max(1, int(math.floor(tail / min_cut_seconds)))
+            body_dur = tail / body_cuts
+        for i in range(body_cuts):
+            durations.append(round(body_dur, 3))
+        # Absorb rounding drift on the final cut
+        drift = total_duration - sum(durations)
+        durations[-1] = max(0.8, round(durations[-1] + drift, 3))
+    else:
+        cut_count = max(1, int(round(total_duration / target_cut_seconds)))
         base_dur = total_duration / cut_count
+        if base_dur < min_cut_seconds and cut_count > 1:
+            cut_count = max(1, int(math.floor(total_duration / min_cut_seconds)))
+            base_dur = total_duration / cut_count
+        remaining = total_duration
+        for idx in range(cut_count):
+            dur = remaining if idx == cut_count - 1 else round(base_dur, 3)
+            dur = max(0.8, dur)
+            remaining = max(0.0, remaining - dur)
+            durations.append(dur)
 
     clip_cursors: dict[str, float] = {c.asset_key: 0.25 for c in playable}
     cuts: list[VisualCut] = []
-    remaining = total_duration
 
-    for idx in range(cut_count):
+    for idx, dur in enumerate(durations):
         asset = playable[idx % len(playable)]
-        dur = remaining if idx == cut_count - 1 else round(base_dur, 3)
-        dur = max(0.8, dur)
-        remaining = max(0.0, remaining - dur)
-
         cursor = clip_cursors[asset.asset_key]
         max_start = max(0.0, asset.duration - dur - 0.15)
         if cursor > max_start:
@@ -300,7 +380,14 @@ def render_short(
     seg_dir = work_dir / "segments_short"
     seg_dir.mkdir(parents=True, exist_ok=True)
 
-    cuts = plan_visual_cuts(clips, total_duration + 0.15, target_cut_seconds=3.1, min_cut_seconds=2.4)
+    ranked_clips = rank_clips_for_hook(clips, work_dir)
+    cuts = plan_visual_cuts(
+        ranked_clips,
+        total_duration + 0.12,
+        target_cut_seconds=2.45,
+        min_cut_seconds=1.85,
+        front_loaded_hook=True,
+    )
     segments: list[Path] = []
     for cut in cuts:
         seg_path = seg_dir / f"seg_{cut.index:03d}.mp4"

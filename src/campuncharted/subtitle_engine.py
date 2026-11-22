@@ -132,10 +132,11 @@ def generate_shorts_karaoke_ass(
     out_ass: Path,
     *,
     pill_label: str = "",
+    hook_banner: str = "",
     width: int = SHORTS_WIDTH,
     height: int = SHORTS_HEIGHT,
 ) -> Path:
-    """Generate dynamic word-by-word gold-highlighted ASS subtitles for 9:16 Shorts."""
+    """Generate dynamic word-by-word gold-highlighted ASS subtitles + 0.0-1.85s scroll-stopper hook banner."""
     out_ass.parent.mkdir(parents=True, exist_ok=True)
     font_family = detect_ass_font_family()
 
@@ -150,8 +151,9 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Karaoke,{font_family},82,&H00FFFFFF,&H003BD4FF,&H000A0A0A,&H96000000,-1,0,0,0,100,100,1,0,1,6,3,2,64,64,475,1
+Style: Karaoke,{font_family},84,&H00FFFFFF,&H003BD4FF,&H000A0A0A,&H96000000,-1,0,0,0,100,100,1,0,1,6,3,2,64,64,475,1
 Style: TopPill,{font_family},36,&H003BD4FF,&H00FFFFFF,&H55101418,&H00000000,-1,0,0,0,100,100,2,0,3,16,0,8,60,60,145,1
+Style: HookBanner,{font_family},108,&H003BD4FF,&H00FFFFFF,&H00080A0F,&HA000000,-1,0,0,0,100,100,2,0,1,9,4,8,56,56,280,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -161,8 +163,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     if pill_label.strip():
         clean_pill = escape_ass_text(pill_label.strip().upper()[:30])
         events.append(
-            f"Dialogue: 1,{format_ass_time(0.0)},{format_ass_time(2.75)},TopPill,,0,0,0,,"
-            f"{{\\fad(160,280)}}●  {clean_pill}"
+            f"Dialogue: 1,{format_ass_time(0.0)},{format_ass_time(2.60)},TopPill,,0,0,0,,"
+            f"{{\\fad(120,260)}}●  {clean_pill}"
+        )
+
+    if hook_banner.strip():
+        # Instant 0.0-1.85s visual scroll-stopper with quick pop-in scale animation (grabs muted scrollers in 0.3s!)
+        clean_hook = escape_ass_text(hook_banner.strip().upper()[:24])
+        events.append(
+            f"Dialogue: 2,{format_ass_time(0.0)},{format_ass_time(1.85)},HookBanner,,0,0,0,,"
+            f"{{\\fscx88\\fscy88\\t(0,110,\\fscx104\\fscy104)\\t(110,180,\\fscx100\\fscy100)\\fad(0,180)}}{clean_hook}"
         )
 
     all_bursts: list[list[WordTiming]] = []

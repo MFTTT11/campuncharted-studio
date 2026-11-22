@@ -276,6 +276,7 @@ def generate_nature_soundscape(
     *,
     mood: str = "ALPINE_WIND",
     include_hook_swell: bool = True,
+    loop_snappy: bool = False,
     sample_rate: int = 44100,
 ) -> Path:
     """Generate a clean, pleasant, zero-dependency stereo nature soundscape bed.
@@ -347,17 +348,27 @@ def generate_nature_soundscape(
             left[pos : pos + length] += burst * pan
             right[pos : pos + length] += burst * (1.0 - pan)
 
-    # Crisp subtle sub-impact swell at t=0.0s to grab attention on Shorts hook
+    # Crisp subtle sub-impact + airy whoosh at t=0.0s (plus subtle climax accent at 62% on Shorts)
     if include_hook_swell:
-        hit_len = min(n, int(sample_rate * 0.55))
+        hit_len = min(n, int(sample_rate * 0.50))
         ht = np.linspace(0.0, hit_len / sample_rate, hit_len, dtype=np.float32)
-        sub = np.sin(2.0 * math.pi * (85.0 - 35.0 * ht) * ht) * np.exp(-ht * 6.5) * 0.30
-        left[:hit_len] += sub
-        right[:hit_len] += sub
+        sub = np.sin(2.0 * math.pi * (92.0 - 42.0 * ht) * ht) * np.exp(-ht * 6.8) * 0.34
+        whoosh = left_noise[:hit_len] * np.sin(math.pi * ht / max(0.01, ht[-1])) * 0.22
+        left[:hit_len] += sub + whoosh
+        right[:hit_len] += sub + whoosh
 
-    # Smooth fade-in (0.3s) and fade-out (1.2s)
-    fade_in = min(n, int(sample_rate * 0.3))
-    fade_out = min(n, int(sample_rate * 1.2))
+        if duration_seconds >= 15.0:
+            twist_pos = int(sample_rate * duration_seconds * 0.62)
+            tw_len = min(n - twist_pos, int(sample_rate * 0.38))
+            if tw_len > 200:
+                wt = np.linspace(0.0, tw_len / sample_rate, tw_len, dtype=np.float32)
+                accent = np.sin(2.0 * math.pi * (78.0 - 30.0 * wt) * wt) * np.exp(-wt * 7.5) * 0.24
+                left[twist_pos : twist_pos + tw_len] += accent
+                right[twist_pos : twist_pos + tw_len] += accent
+
+    # Snappy loop-friendly micro-fade for Shorts vs long cinematic fade for Documentaries
+    fade_in = min(n, int(sample_rate * (0.06 if loop_snappy else 0.30)))
+    fade_out = min(n, int(sample_rate * (0.08 if loop_snappy else 1.20)))
     left[:fade_in] *= np.linspace(0.0, 1.0, fade_in, dtype=np.float32)
     right[:fade_in] *= np.linspace(0.0, 1.0, fade_in, dtype=np.float32)
     left[-fade_out:] *= np.linspace(1.0, 0.0, fade_out, dtype=np.float32)

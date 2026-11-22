@@ -60,10 +60,10 @@ DOCUMENTARY_VOICES_EN = (
     "en-US-GuyNeural",
 )
 
-# Shorts narration pacing: crisp, engaging, never sleepy
-SHORTS_TTS_RATE = "+7%"
+# Shorts narration pacing: punchy, confident, zero dead air for >100% loop retention
+SHORTS_TTS_RATE = "+11%"
 SHORTS_TTS_PITCH = "+0Hz"
-SHORTS_BEAT_GAP_SECONDS = 0.12
+SHORTS_BEAT_GAP_SECONDS = 0.06
 
 # Documentary narration pacing: warm, cinematic, steady
 DOC_TTS_RATE = "+0%"
