@@ -1,6 +1,6 @@
 {
   "quota": {
-    "2026-11-21": 0
+    "2026-11-22": 1650
   },
   "videos": {
     "KNkAeiRp3so": {
@@ -103,7 +103,113 @@
       "comment_posted": true,
       "publish_at": "",
       "queued_at": "2026-11-20T19:25:44.174455+00:00"
+    },
+    "tfYyd6e93jM": {
+      "title": "Why Wise Campers Collect Pine Resin in Rain",
+      "description": "When heavy rain renders your kindling soaked and useless, natural pine resin can ignite in seconds. Have you ever used sticky pine sap to start a fire in the wild?\n\nKey Takeaway: Pine resin is water-insoluble and rich in flammable terpenes, making it a reliable natural fire starter even in wet conditions.\n\nQ: How do you start a campfire in heavy rain using pine resin?\nA: Pine resin contains flammable compounds called terpenes that repel water. Scraping resin from pine bark and striking sparks onto it creates a long-burning, rain-resistant flame that dries nearby wet kindling.\n\nSubscribe to @CampUncharted for real outdoor stories, backcountry safety, and Earth's wildest places.\n\nReferences:\n- https://en.wikipedia.org/wiki/Resin\n- https://en.wikipedia.org/wiki/Fire_making\n\n#BushcraftHacks #PineResinFire #WetWeatherCamping #CampFireStarter #Shorts",
+      "cues": [
+        [
+          0.0,
+          4.097,
+          "Torrential rain just soaked all your kindling making a standard campfire"
+        ],
+        [
+          4.097,
+          5.32,
+          "completely impossible"
+        ],
+        [
+          5.44,
+          8.521,
+          "Instead of searching for dry wood look closely at the bark of"
+        ],
+        [
+          8.521,
+          9.341,
+          "pine trees"
+        ],
+        [
+          9.461,
+          14.013,
+          "Trees secrete sticky resin rich in flammable terpenes whenever their outer"
+        ],
+        [
+          14.013,
+          14.997,
+          "bark gets damaged"
+        ],
+        [
+          15.117,
+          20.114,
+          "Because resin is entirely insoluble in water rain rolls straight off"
+        ],
+        [
+          20.125,
+          20.827,
+          "without weakening it"
+        ],
+        [
+          20.947,
+          24.612,
+          "Scrape a chunk of dried hardened resin off using a knife or"
+        ],
+        [
+          24.623,
+          25.149,
+          "sharp rock"
+        ],
+        [
+          25.269,
+          28.561,
+          "Place the pitch directly onto wet tinder and strike it with a"
+        ],
+        [
+          28.561,
+          29.15,
+          "ferro rod"
+        ],
+        [
+          29.27,
+          34.395,
+          "The terpenes catch instantly creating an intense wind-resistant flame that"
+        ],
+        [
+          34.395,
+          35.747,
+          "burns extremely hot"
+        ],
+        [
+          35.867,
+          40.104,
+          "This natural pitch acts like torch fuel melting slow enough to dry"
+        ],
+        [
+          40.116,
+          41.341,
+          "surrounding damp logs"
+        ],
+        [
+          41.461,
+          43.625,
+          "Will you keep a lump of resin in your pack next time?"
+        ]
+      ],
+      "done_langs": [
+        "de",
+        "en",
+        "es",
+        "tr"
+      ],
+      "localized_langs": [
+        "de",
+        "es",
+        "tr"
+      ],
+      "pinned_comment": "Have you ever used tree resin to light a fire in bad weather?",
+      "comment_posted": true,
+      "publish_at": "",
+      "queued_at": "2026-11-22T09:12:13.417592+00:00"
     }
   },
-  "updated_at": "2026-11-21T13:13:17.337793+00:00"
+  "updated_at": "2026-11-22T09:13:48.456931+00:00"
 }

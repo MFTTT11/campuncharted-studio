@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-20T19:25:44.171056+00:00",
+  "updated_at": "2026-11-22T09:12:13.413068+00:00",
   "topics": [
     {
       "topic_id": "mistake_cotton_kills_trail",
@@ -9,6 +9,15 @@
       "duration_seconds": 42.1,
       "format": "short",
       "created_at": "2026-11-20T19:25:44.171035+00:00"
+    },
+    {
+      "topic_id": "trend_pine_resin_tinder_survival_hack",
+      "series": "GEAR_AND_HACKS",
+      "title": "Why Wise Campers Collect Pine Resin in Rain",
+      "video_id": "tfYyd6e93jM",
+      "duration_seconds": 43.6,
+      "format": "short",
+      "created_at": "2026-11-22T09:12:13.413049+00:00"
     }
   ]
 }
