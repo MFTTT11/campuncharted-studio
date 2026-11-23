@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-22T09:12:13.413068+00:00",
+  "updated_at": "2026-11-23T10:41:10.900109+00:00",
   "topics": [
     {
       "topic_id": "mistake_cotton_kills_trail",
@@ -18,6 +18,15 @@
       "duration_seconds": 43.6,
       "format": "short",
       "created_at": "2026-11-22T09:12:13.413049+00:00"
+    },
+    {
+      "topic_id": "wild_skeleton_coast_namibia",
+      "series": "WILD_STAYS",
+      "title": "Why Sailors Feared Namibia's Skeleton Coast",
+      "video_id": "TH7tpGQNVfQ",
+      "duration_seconds": 36.2,
+      "format": "short",
+      "created_at": "2026-11-23T10:41:10.900099+00:00"
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "quota": {
-    "2026-11-23": 900
+    "2026-11-23": 1750
   },
   "videos": {
     "KNkAeiRp3so": {
@@ -213,7 +213,84 @@
       "comment_posted": true,
       "publish_at": "",
       "queued_at": "2026-11-22T09:12:13.417592+00:00"
+    },
+    "TH7tpGQNVfQ": {
+      "title": "Why Sailors Feared Namibia's Skeleton Coast",
+      "description": "Namibia's Skeleton Coast is where towering desert dunes meet the Atlantic Ocean under dense sea fog. Would you ever dare to camp near these iconic shipwrecks?\n\nKey Takeaway: The Skeleton Coast became a famous ship graveyard because strong ocean surf allowed boats to land, but severe onshore winds and vast dunes trapped sailors on shore.\n\nQ: Why is it called the Skeleton Coast in Namibia?\nA: It was named for the countless whale bones that once littered the shore alongside hundreds of rusting shipwrecks stranded by heavy ocean fog and violent surf.\n\nSubscribe to @CampUncharted for real outdoor stories, backcountry safety, and Earth's wildest places.\n\nReferences:\n- https://en.wikipedia.org/wiki/Skeleton_Coast\n\n#SkeletonCoast #NamibiaDesert #WildStays #NamibDesert #Shorts",
+      "cues": [
+        [
+          0.0,
+          4.193,
+          "Sailor legends called this foggy African coastline the gates of hell for"
+        ],
+        [
+          4.193,
+          5.604,
+          "one terrifying reason"
+        ],
+        [
+          5.664,
+          10.405,
+          "Here, massive desert sand dunes crash directly into the freezing Atlantic Ocean."
+        ],
+        [
+          10.465,
+          14.411,
+          "Cold ocean currents collide with scorching air trapping the shore under"
+        ],
+        [
+          14.422,
+          15.502,
+          "blinding sea fog"
+        ],
+        [
+          15.562,
+          19.497,
+          "Ancient wooden ships easily rode the massive waves onto the sandy beach."
+        ],
+        [
+          19.557,
+          23.142,
+          "But launching back into the ocean against the violent surf was physically"
+        ],
+        [
+          23.142,
+          23.64,
+          "impossible"
+        ],
+        [
+          23.7,
+          28.161,
+          "With no freshwater for hundreds of miles, survivors faced endless barren desert."
+        ],
+        [
+          28.221,
+          32.47,
+          "That left stranded sailors with only one choice march into a waterless"
+        ],
+        [
+          32.481,
+          32.96,
+          "wasteland"
+        ],
+        [
+          33.02,
+          36.167,
+          "Would you brave a night along this deadly coastline, or—"
+        ]
+      ],
+      "done_langs": [
+        "en",
+        "es"
+      ],
+      "localized_langs": [
+        "es"
+      ],
+      "pinned_comment": "If your boat washed ashore here, would you wait on the beach or hike into the desert?",
+      "comment_posted": false,
+      "publish_at": "2026-11-23T13:15:00Z",
+      "queued_at": "2026-11-23T10:41:10.905203+00:00"
     }
   },
-  "updated_at": "2026-11-23T10:31:36.762474+00:00"
+  "updated_at": "2026-11-23T10:41:28.569560+00:00"
 }
