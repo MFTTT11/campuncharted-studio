@@ -290,7 +290,59 @@
       "comment_posted": true,
       "publish_at": "2026-11-23T13:15:00Z",
       "queued_at": "2026-11-23T10:41:10.905203+00:00"
+    },
+    "bkmbj6XY8LA": {
+      "title": "Why You Must Never Camp on a Canyon Floor",
+      "description": "Your perfect canyon campsite could turn into a violent wind tunnel overnight. Do you know how to spot the signs of incoming katabatic winds?\n\nKey Takeaway: Katabatic winds occur when cold, dense air rapidly descends from mountain slopes into canyon floors, creating sudden, powerful nocturnal gusts that can destroy tents.\n\nQ: What is a katabatic wind and why is it dangerous for camping?\nA: A katabatic wind is a downslope wind caused by cold, dense air flowing down mountain peaks; it is dangerous because it can suddenly surge into valley camps with destructive force.\n\nSubscribe to @CampUncharted for real outdoor stories, backcountry safety, and Earth's wildest places.\n\nReferences:\n- https://en.wikipedia.org/wiki/Katabatic_wind\n- https://en.wikipedia.org/wiki/Canyon\n\n#WildCamping #CampingSafety #KatabaticWind #CanyonCamping #Shorts",
+      "cues": [
+        [
+          0.0,
+          3.123,
+          "That peaceful canyon floor is actually a high-speed wind trap waiting."
+        ],
+        [
+          3.183,
+          7.863,
+          "As mountain peaks cool at night, gravity pulls dense air downward instantly."
+        ],
+        [
+          7.923,
+          11.986,
+          "This cold air accelerates like a freight train through narrow canyon gaps."
+        ],
+        [
+          12.046,
+          15.417,
+          "It is called a katabatic wind, and it strikes without any warning."
+        ],
+        [
+          15.477,
+          19.67,
+          "Your tent is not designed to withstand these violent, sudden vertical gusts."
+        ],
+        [
+          19.73,
+          22.796,
+          "Pros always check the slope above before choosing a night spot."
+        ],
+        [
+          22.856,
+          25.596,
+          "Move higher up the slope to stay clear of the drainage path."
+        ],
+        [
+          25.656,
+          27.782,
+          "Would you risk sleeping here, or pack up right now?"
+        ]
+      ],
+      "done_langs": [],
+      "localized_langs": [],
+      "pinned_comment": "Have you ever been woken up by a sudden windstorm while camping in a canyon?",
+      "comment_posted": false,
+      "publish_at": "2026-11-23T23:15:00Z",
+      "queued_at": "2026-11-23T19:19:54.637205+00:00"
     }
   },
-  "updated_at": "2026-11-23T15:59:59.064757+00:00"
+  "updated_at": "2026-11-23T19:19:54.638522+00:00"
 }

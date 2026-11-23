@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-23T10:41:10.899135+00:00",
+  "updated_at": "2026-11-23T19:19:54.631420+00:00",
   "slots": [
     {
       "publish_at": "2026-11-23T13:15:00Z",
@@ -7,6 +7,13 @@
       "video_id": "TH7tpGQNVfQ",
       "title": "Why Sailors Feared Namibia's Skeleton Coast",
       "recorded_at": "2026-11-23T10:41:10.899108+00:00"
+    },
+    {
+      "publish_at": "2026-11-23T23:15:00Z",
+      "format": "short",
+      "video_id": "bkmbj6XY8LA",
+      "title": "Why You Must Never Camp on a Canyon Floor",
+      "recorded_at": "2026-11-23T19:19:54.631388+00:00"
     }
   ]
 }

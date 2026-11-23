@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-23T10:41:10.900109+00:00",
+  "updated_at": "2026-11-23T19:19:54.632929+00:00",
   "topics": [
     {
       "topic_id": "mistake_cotton_kills_trail",
@@ -27,6 +27,15 @@
       "duration_seconds": 36.2,
       "format": "short",
       "created_at": "2026-11-23T10:41:10.900099+00:00"
+    },
+    {
+      "topic_id": "trend_katabatic_wind_canyon_hazard",
+      "series": "EXTREME_WEATHER_NATURE",
+      "title": "Why You Must Never Camp on a Canyon Floor",
+      "video_id": "bkmbj6XY8LA",
+      "duration_seconds": 27.8,
+      "format": "short",
+      "created_at": "2026-11-23T19:19:54.632917+00:00"
     }
   ]
 }
