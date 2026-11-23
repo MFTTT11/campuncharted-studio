@@ -1,25 +1,32 @@
 {
   "period": {
-    "start": "2026-10-21",
-    "end": "2026-11-20"
+    "start": "2026-10-22",
+    "end": "2026-11-21"
   },
   "channel_stats": {
     "subscribers": 26,
-    "total_views": 32120,
+    "total_views": 32711,
     "video_count": 243
   },
   "rolling_30d": {
-    "views": 1948,
-    "watch_minutes": 312.0,
-    "avg_view_duration_sec": 24.0,
-    "avg_view_percentage": 33.0,
+    "views": 2348,
+    "watch_minutes": 354.0,
+    "avg_view_duration_sec": 23.0,
+    "avg_view_percentage": 33.8,
     "subscribers_gained": 24,
     "subscribers_lost": 22,
     "net_subscribers": 2,
-    "likes": 15,
-    "comments": 0
+    "likes": 19,
+    "comments": 1
   },
-  "series_metrics": {},
+  "series_metrics": {
+    "CAMP_MISTAKES": {
+      "count": 1,
+      "avg_views": 426.0,
+      "avg_avp": 43.7,
+      "net_subs": 0
+    }
+  },
   "series_weights": {
     "CAMP_MISTAKES": 0.3,
     "WILD_STAYS": 0.25,
@@ -28,6 +35,15 @@
     "TURKEY_AND_EURASIA_HIDDEN": 0.1
   },
   "top_videos": [
+    {
+      "video_id": "KNkAeiRp3so",
+      "title": "Why Outdoor Guides Call Cotton the Silent Killer",
+      "series": "CAMP_MISTAKES",
+      "views": 426,
+      "avp": 43.7,
+      "avd": 18.0,
+      "net_subs": 0
+    },
     {
       "video_id": "JgrGBJRFwtM",
       "title": "Gezer: Ancient Foothills and Biblical History | Judaean Mountains... #Shorts #Camp",
@@ -68,9 +84,9 @@
       "video_id": "Gdz0SchEX7s",
       "title": "Konya: Exploring Central Anatolian Plateau History | Konya... #Shorts #Camp",
       "series": "LEGACY",
-      "views": 74,
-      "avp": 26.7,
-      "avd": 19.0,
+      "views": 75,
+      "avp": 28.1,
+      "avd": 20.0,
       "net_subs": 0
     },
     {
@@ -90,22 +106,13 @@
       "avp": 43.2,
       "avd": 9.0,
       "net_subs": 0
-    },
-    {
-      "video_id": "GRl4Xiam3NA",
-      "title": "Kayseri: Mount Erciyes and Autumn Forests | Central Anatolia, Turkey #Shorts #Camp",
-      "series": "LEGACY",
-      "views": 45,
-      "avp": 31.4,
-      "avd": 20.0,
-      "net_subs": 0
     }
   ],
-  "summary_guidance": "Last 30d channel performance: 1948 views, 33.0% average view percentage, +2 net subscribers. Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations. Live YouTube trends: Ultra-simple visual bushcraft hacks (e.g., quick resource extraction or ingenious low-tool solutions) capture massive initial click-throughs. | Counter-intuitive outdoor safety facts that challenge common camping instincts drive exceptionally high comment engagement and shares.",
-  "updated_at": "2026-11-22T10:35:34.209183+00:00",
+  "summary_guidance": "Last 30d channel performance: 2348 views, 33.8% average view percentage, +2 net subscribers. Top-performing series right now: CAMP_MISTAKES (44% avg AVP, 426 avg views). Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations. Live YouTube trends: Subzero winter survival and extreme cold nights generate massive view spikes due to high stakes and psychological curiosity around staying warm. | Cozy rain camping and storm shelters drive high retention through sensory contrast between a harsh exterior environment and a secure interior shelter.",
+  "updated_at": "2026-11-23T10:29:57.121705+00:00",
   "live_youtube_trends": [
-    "Ultra-simple visual bushcraft hacks (e.g., quick resource extraction or ingenious low-tool solutions) capture massive initial click-throughs.",
-    "Counter-intuitive outdoor safety facts that challenge common camping instincts drive exceptionally high comment engagement and shares.",
-    "Fast-paced problem-solving in wet or extreme environments generates strong retention by demonstrating immediate real-world utility."
+    "Subzero winter survival and extreme cold nights generate massive view spikes due to high stakes and psychological curiosity around staying warm.",
+    "Cozy rain camping and storm shelters drive high retention through sensory contrast between a harsh exterior environment and a secure interior shelter.",
+    "Counter-intuitive wilderness safety rules and physical mistakes trigger high save and share rates among outdoors enthusiasts."
   ]
 }

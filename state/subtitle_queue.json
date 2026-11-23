@@ -1,6 +1,6 @@
 {
   "quota": {
-    "2026-11-22": 1650
+    "2026-11-23": 900
   },
   "videos": {
     "KNkAeiRp3so": {
@@ -92,11 +92,13 @@
         "de",
         "en",
         "es",
+        "fr",
         "tr"
       ],
       "localized_langs": [
         "de",
         "es",
+        "fr",
         "tr"
       ],
       "pinned_comment": "Have you ever been caught in soaked clothing on a freezing trail?",
@@ -198,11 +200,13 @@
         "de",
         "en",
         "es",
+        "fr",
         "tr"
       ],
       "localized_langs": [
         "de",
         "es",
+        "fr",
         "tr"
       ],
       "pinned_comment": "Have you ever used tree resin to light a fire in bad weather?",
@@ -211,5 +215,5 @@
       "queued_at": "2026-11-22T09:12:13.417592+00:00"
     }
   },
-  "updated_at": "2026-11-22T10:35:35.048053+00:00"
+  "updated_at": "2026-11-23T10:31:36.762474+00:00"
 }
