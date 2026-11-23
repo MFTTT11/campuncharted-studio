@@ -8,6 +8,7 @@ import wave
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from campuncharted.audio_engine import (
     BeatAudio,
@@ -22,6 +23,7 @@ from campuncharted.subtitle_engine import (
 )
 from campuncharted.thumbnail_engine import extract_best_frame, generate_thumbnail
 from campuncharted.video_engine import (
+    rank_clips_for_hook,
     render_documentary,
     render_short,
     verify_rendered_video,
@@ -220,3 +222,129 @@ def test_e2e_documentary_render_and_thumbnail(tmp_path: Path) -> None:
     )
     assert thumb.is_file()
     assert 20_000 < thumb.stat().st_size < 1_900_000
+
+
+def test_rank_clips_filters_out_pitch_black_clips(tmp_path: Path) -> None:
+    bright_a = _make_synthetic_clip(
+        tmp_path / "bright_a.mp4",
+        width=1080,
+        height=1920,
+        duration=4.0,
+        filter_src="testsrc2",
+    )
+    bright_b = _make_synthetic_clip(
+        tmp_path / "bright_b.mp4",
+        width=1080,
+        height=1920,
+        duration=4.0,
+        filter_src="smptehdbars",
+    )
+    black_clip = _make_synthetic_clip(
+        tmp_path / "pitch_black.mp4",
+        width=1080,
+        height=1920,
+        duration=4.0,
+        filter_src="color",
+    )
+
+    ranked = rank_clips_for_hook([black_clip, bright_a, bright_b], tmp_path / "rank_work")
+    keys = [c.asset_key for c in ranked]
+    assert black_clip.asset_key not in keys
+    assert set(keys) == {bright_a.asset_key, bright_b.asset_key}
+
+    # Safety fallback: when all clips are dark, never return an empty list
+    only_black = rank_clips_for_hook([black_clip, black_clip], tmp_path / "rank_fallback")
+    assert len(only_black) == 2
+
+
+def test_verify_rendered_video_rejects_black_and_allows_isolated_dark_cut(tmp_path: Path) -> None:
+    audio_wav = _make_synthetic_narration(tmp_path / "qc_audio.wav", 10.0)
+
+    # 1. All-black video MUST fail visual QC
+    black_mp4 = tmp_path / "all_black.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:size=1080x1920:rate=30:duration=10.0",
+            "-i",
+            str(audio_wav),
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-shortest",
+            str(black_mp4),
+        ],
+        check=True,
+        timeout=60,
+    )
+    with pytest.raises(RuntimeError, match="failed visual QC"):
+        verify_rendered_video(
+            black_mp4,
+            expected_width=1080,
+            expected_height=1920,
+            min_duration=8.0,
+            work_dir=tmp_path / "qc_black",
+        )
+
+    # 2. Bright video with a single isolated dark night cut across 50% (t=4.0..6.0s) MUST pass QC
+    mixed_mp4 = tmp_path / "isolated_dark_cut.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=size=1080x1920:rate=30:duration=4.0",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:size=1080x1920:rate=30:duration=2.0",
+            "-f",
+            "lavfi",
+            "-i",
+            "smptehdbars=size=1080x1920:rate=30:duration=4.0",
+            "-i",
+            str(audio_wav),
+            "-filter_complex",
+            "[0:v][1:v][2:v]concat=n=3:v=1:a=0,format=yuv420p[v]",
+            "-map",
+            "[v]",
+            "-map",
+            "3:a:0",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-c:a",
+            "aac",
+            "-shortest",
+            str(mixed_mp4),
+        ],
+        check=True,
+        timeout=60,
+    )
+    qc = verify_rendered_video(
+        mixed_mp4,
+        expected_width=1080,
+        expected_height=1920,
+        min_duration=8.0,
+        work_dir=tmp_path / "qc_mixed",
+    )
+    assert qc["video_codec"] == "h264"
+    assert len(qc["frame_stats"]) == 5
