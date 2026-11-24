@@ -405,3 +405,93 @@ def test_render_single_cut_looped_clip_skips_black_fade_in(tmp_path: Path) -> No
     brightness, contrast, _ = metrics
     assert brightness > 30.0 and contrast > 20.0
 
+
+def test_e2e_v3_beat_synced_short_with_punch_zoom_and_beat_sfx(tmp_path: Path) -> None:
+    from campuncharted.video_engine import plan_beat_synced_cuts
+
+    clip_b0_a = _make_synthetic_clip(
+        tmp_path / "b0_a.mp4", width=1080, height=1920, duration=4.5, filter_src="testsrc2"
+    )
+    clip_b0_b = _make_synthetic_clip(
+        tmp_path / "b0_b.mp4", width=1080, height=1920, duration=4.5, filter_src="smptehdbars"
+    )
+    clip_b1 = _make_synthetic_clip(
+        tmp_path / "b1.mp4", width=1080, height=1920, duration=4.5, filter_src="rgbtestsrc"
+    )
+    clip_b2 = _make_synthetic_clip(
+        tmp_path / "b2.mp4", width=1080, height=1920, duration=4.5, filter_src="testsrc2"
+    )
+
+    total_dur = 6.9
+    narration_wav = _make_synthetic_narration(tmp_path / "v3_narr.wav", total_dur)
+    beat_lines = [
+        "Never put wet river rocks around your campfire.",
+        "Trapped water boils into steam and explodes like shrapnel.",
+        "Ignore that one rule and...",
+    ]
+    beat_starts = [0.0, 2.3, 4.8]
+    beat_durs = [2.26, 2.46, 2.1]
+    beats: list[BeatAudio] = []
+    for idx, (line, st, dur) in enumerate(zip(beat_lines, beat_starts, beat_durs)):
+        words = build_word_timings(line, [], timeline_offset=st, clip_duration=dur - 0.05)
+        beats.append(BeatAudio(index=idx, text=line, audio_path=narration_wav, start=st, duration=dur, words=words))
+
+    ambience_wav = generate_nature_soundscape(
+        tmp_path / "v3_amb.wav",
+        total_dur + 0.2,
+        mood="CAMPFIRE_NIGHT",
+        include_hook_swell=True,
+        loop_snappy=True,
+        beat_timestamps=beat_starts,
+    )
+    with wave.open(str(ambience_wav), "rb") as wf:
+        amb_pcm = np.frombuffer(wf.readframes(wf.getnframes()), dtype=np.int16)
+    assert int(np.max(np.abs(amb_pcm))) > 5000, "Generated soundscape must have crisp non-zero PCM energy"
+    mixed_m4a = mix_narration_and_ambience(
+        narration_wav,
+        ambience_wav,
+        tmp_path / "v3_mixed.m4a",
+        duration_seconds=total_dur,
+        ambience_volume=0.25,
+    )
+    ass_path = generate_shorts_karaoke_ass(
+        beats,
+        tmp_path / "v3_captions.ass",
+        pill_label="CAMPING RULE",
+        hook_banner="EXPLODING ROCKS",
+    )
+
+    beat_clips = [[clip_b0_a, clip_b0_b], [clip_b1], [clip_b2]]
+    beat_specs = [(0.0, 2.3, True), (2.3, 2.5, True), (4.8, 2.1, False)]
+    planned = plan_beat_synced_cuts(beat_clips, beat_specs, total_dur + 0.12, work_dir=tmp_path / "plan_work")
+    # Beat 0 splits across its 2 matched hook clips with punch_zoom on cut 0
+    assert planned[0].asset.asset_key == clip_b0_a.asset_key
+    assert planned[0].punch_zoom is True
+    assert planned[1].asset.asset_key == clip_b0_b.asset_key
+    # Beat 1 uses Beat 1's matched clip with punch_zoom on its opening cut
+    beat1_cuts = [c for c in planned if c.asset.asset_key == clip_b1.asset_key]
+    assert len(beat1_cuts) >= 1 and beat1_cuts[0].punch_zoom is True
+    # Beat 2 uses Beat 2's matched clip
+    assert planned[-1].asset.asset_key == clip_b2.asset_key
+
+    out_mp4 = tmp_path / "v3_rendered_short.mp4"
+    render_short(
+        [clip_b0_a, clip_b0_b, clip_b1, clip_b2],
+        mixed_m4a,
+        ass_path,
+        out_mp4,
+        tmp_path / "v3_work",
+        total_duration=total_dur,
+        beat_clips=beat_clips,
+        beat_specs=beat_specs,
+    )
+    qc = verify_rendered_video(
+        out_mp4,
+        expected_width=1080,
+        expected_height=1920,
+        min_duration=6.2,
+        work_dir=tmp_path / "v3_work",
+    )
+    assert qc["video_codec"] == "h264"
+    assert qc["audio_codec"] == "aac"
+    assert qc["mean_volume_db"] > -30.0

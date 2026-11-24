@@ -31,6 +31,7 @@ class MediaAsset:
     height: int
     duration: float
     local_path: Path | None = None
+    beat_index: int | None = None
 
     @property
     def is_portrait(self) -> bool:
@@ -371,6 +372,173 @@ def download_asset(asset: MediaAsset, dest_path: Path, *, session: requests.Sess
             tmp_path.unlink(missing_ok=True)
 
 
+def _probe_clip_brightness(mp4_path: Path, duration: float, probe_dir: Path, tag: str) -> tuple[float, float] | None:
+    """Sample a mid-clip frame to reject pitch-black/murky stock clips immediately per beat."""
+    from PIL import Image, ImageStat
+
+    probe_dir.mkdir(parents=True, exist_ok=True)
+    ts = max(0.3, min(max(0.3, duration - 0.3), duration * 0.35))
+    out_png = probe_dir / f"bright_{tag}.png"
+    try:
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-ss",
+                f"{ts:.3f}",
+                "-i",
+                str(mp4_path),
+                "-frames:v",
+                "1",
+                str(out_png),
+            ],
+            check=True,
+            timeout=20,
+        )
+        if not out_png.is_file():
+            return None
+        with Image.open(out_png) as raw:
+            rgb = raw.convert("RGB").resize((180, 180), Image.Resampling.BILINEAR)
+            stat = ImageStat.Stat(rgb)
+            return sum(stat.mean) / 3.0, sum(stat.stddev) / 3.0
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def fetch_beat_synced_clips(
+    beat_queries: list[str],
+    *,
+    orientation: str = "portrait",
+    work_dir: Path,
+    creds: ApiCredentials,
+    store: StateStore,
+    fallback_queries: tuple[str, ...] = (),
+    clips_per_beat: int = 1,
+    hook_clips: int = 2,
+    min_brightness: float = 20.0,
+    hook_min_brightness: float = 42.0,
+    session: requests.Session | None = None,
+    brightness_probe: Any = None,
+) -> list[list[MediaAsset]]:
+    """Fetch bright, native-orientation stock clips matched 1-to-1 to EVERY spoken beat query.
+
+    Fixes the v2 bug where searching stopped after Beat 2 and brightness-sorting scrambled clip order
+    relative to narration. Beat 0 (the 0-2s hook) enforces higher brightness and fetches 2 shots for
+    an immediate rapid scroll-stopping cut.
+    """
+    used_ids = set(store.get_used_media_ids())
+    seen_in_video: set[str] = set()
+    client = session or requests.Session()
+    probe_fn = brightness_probe or _probe_clip_brightness
+
+    clips_dir = work_dir / "clips_beats"
+    probe_dir = work_dir / "clips_probe"
+    clips_dir.mkdir(parents=True, exist_ok=True)
+    probe_dir.mkdir(parents=True, exist_ok=True)
+
+    generic_fallbacks = (
+        ("camping tent mountains sunrise", "wilderness forest hiking", "mountain river landscape")
+        if orientation == "portrait"
+        else ("mountain wilderness aerial landscape", "forest river nature sunrise", "national park scenic vista")
+    )
+    clean_fallbacks = [sanitize_query(q) for q in (*fallback_queries, *generic_fallbacks) if q]
+
+    def _priority(a: MediaAsset) -> tuple[int, int, float]:
+        orient_ok = 0 if ((orientation == "portrait" and a.is_portrait) or (orientation == "landscape" and not a.is_portrait)) else 1
+        hd_ok = 0 if max(a.width, a.height) >= 1080 else 1
+        # Prefer punchy 6-22s shots over 90s slow drone clips
+        dur_penalty = abs(min(40.0, a.duration) - 14.0)
+        return (orient_ok, hd_ok, dur_penalty)
+
+    query_cache: dict[str, list[MediaAsset]] = {}
+
+    def _search_for(q: str) -> list[MediaAsset]:
+        cq = sanitize_query(q)
+        if cq in query_cache:
+            return query_cache[cq]
+        batch: list[MediaAsset] = []
+        batch.extend(
+            search_pexels(cq, orientation=orientation, api_key=creds.pexels_api_key, store=store, per_page=10, session=client)
+        )
+        if len(batch) < 4:
+            batch.extend(
+                search_pixabay(cq, orientation=orientation, api_key=creds.pixabay_api_key, store=store, per_page=10, session=client)
+            )
+        batch.sort(key=_priority)
+        query_cache[cq] = batch
+        return batch
+
+    beat_results: list[list[MediaAsset]] = []
+    all_selected: list[MediaAsset] = []
+
+    for b_idx, raw_q in enumerate(beat_queries):
+        wanted = max(1, hook_clips if b_idx == 0 else clips_per_beat)
+        min_lum = hook_min_brightness if b_idx == 0 else min_brightness
+        selected_for_beat: list[MediaAsset] = []
+        fallback_dark: list[tuple[float, MediaAsset]] = []
+
+        # Search this beat's EXACT visual_query first, then topic fallback queries only if needed
+        candidate_queries = [raw_q]
+        if clean_fallbacks:
+            candidate_queries.append(clean_fallbacks[b_idx % len(clean_fallbacks)])
+            candidate_queries.append(clean_fallbacks[(b_idx + 1) % len(clean_fallbacks)])
+
+        for q_try in dict.fromkeys(sanitize_query(x) for x in candidate_queries if x):
+            if len(selected_for_beat) >= wanted:
+                break
+            candidates = _search_for(q_try)
+            for cand_idx, candidate in enumerate(candidates):
+                if len(selected_for_beat) >= wanted:
+                    break
+                if candidate.asset_key in used_ids or candidate.asset_key in seen_in_video:
+                    continue
+                seen_in_video.add(candidate.asset_key)
+                ext = ".webm" if candidate.download_url.lower().endswith(".webm") else ".mp4"
+                dest = clips_dir / f"beat{b_idx:02d}_{cand_idx:02d}_{candidate.asset_key}{ext}"
+                if not download_asset(candidate, dest, session=client):
+                    continue
+                candidate.beat_index = b_idx
+                metrics = probe_fn(dest, candidate.duration, probe_dir, f"b{b_idx:02d}_{cand_idx:02d}")
+                if metrics is not None:
+                    lum, contrast = metrics
+                    if lum < min_lum or contrast < 7.0:
+                        print(
+                            f"[MEDIA] Beat {b_idx} skipped dark/flat clip {candidate.asset_key} "
+                            f"(lum={lum:.1f}<{min_lum:.0f}, std={contrast:.1f}); trying next match for '{q_try}'",
+                            flush=True,
+                        )
+                        fallback_dark.append((lum + contrast, candidate))
+                        continue
+                selected_for_beat.append(candidate)
+                all_selected.append(candidate)
+                print(
+                    f"[MEDIA] Beat {b_idx} matched '{q_try}' -> {candidate.provider} {candidate.asset_id} "
+                    f"({candidate.width}x{candidate.height}, {candidate.duration:.1f}s)",
+                    flush=True,
+                )
+
+        if not selected_for_beat and fallback_dark:
+            # Never leave a beat empty: pick the brightest available downloaded clip for this beat
+            fallback_dark.sort(key=lambda pair: pair[0], reverse=True)
+            best_fb = fallback_dark[0][1]
+            selected_for_beat.append(best_fb)
+            all_selected.append(best_fb)
+
+        beat_results.append(selected_for_beat)
+
+    # Final safety net: if any beat still has 0 clips, borrow a non-adjacent already-selected clip
+    if all_selected:
+        for b_idx, bucket in enumerate(beat_results):
+            if not bucket:
+                donor = all_selected[(b_idx + 2) % len(all_selected)]
+                beat_results[b_idx] = [donor]
+
+    return beat_results
+
+
 def fetch_clips_for_queries(
     queries: list[str],
     *,
@@ -382,7 +550,7 @@ def fetch_clips_for_queries(
     fallback_queries: tuple[str, ...] = (),
     commons_category: str = "",
 ) -> list[MediaAsset]:
-    """Fetch a diverse, deduplicated set of playable clips across providers."""
+    """Fetch a diverse, deduplicated set of playable clips across ALL queries (round-robin)."""
     used_ids = store.get_used_media_ids()
     selected: list[MediaAsset] = []
     seen_keys: set[str] = set()
@@ -394,37 +562,53 @@ def fetch_clips_for_queries(
     else:
         all_queries.extend(["mountain wilderness aerial landscape", "forest river nature sunrise", "national park scenic vista"])
 
-    # Gather candidate pool across queries while conserving API calls
-    pool: list[MediaAsset] = []
+    # Gather diverse candidates across EVERY query (cap per query so later chapters/beats aren't starved!)
+    per_query_cap = max(3, (target_clips * 2) // max(1, min(len(all_queries), target_clips)))
+    buckets: list[list[MediaAsset]] = []
+    total_found = 0
     for idx, query in enumerate(all_queries):
-        if len(pool) >= target_clips * 3:
+        if total_found >= target_clips * 3 and idx >= min(len(queries), target_clips):
             break
         batch: list[MediaAsset] = []
-        batch.extend(search_pexels(query, orientation=orientation, api_key=creds.pexels_api_key, store=store, per_page=15, session=session))
+        batch.extend(search_pexels(query, orientation=orientation, api_key=creds.pexels_api_key, store=store, per_page=10, session=session))
         if len(batch) < 4:
-            batch.extend(search_pixabay(query, orientation=orientation, api_key=creds.pixabay_api_key, store=store, per_page=15, session=session))
+            batch.extend(search_pixabay(query, orientation=orientation, api_key=creds.pixabay_api_key, store=store, per_page=10, session=session))
         if orientation == "landscape" and (idx == 0 or len(batch) < 3):
             batch.extend(
                 search_wikimedia_commons(
                     query,
                     category=commons_category if idx == 0 else "",
-                    limit=15,
+                    limit=12,
                     session=session,
                 )
             )
+        deduped: list[MediaAsset] = []
         for item in batch:
             if item.asset_key in seen_keys or item.asset_key in used_ids:
                 continue
             seen_keys.add(item.asset_key)
-            pool.append(item)
+            deduped.append(item)
+            if len(deduped) >= per_query_cap:
+                break
+        if deduped:
+            buckets.append(deduped)
+            total_found += len(deduped)
 
-    # Prefer native orientation first, then crisp resolution & good clip length
+    # Prefer native orientation first within each query bucket, then interleave round-robin across queries
     def asset_priority(a: MediaAsset) -> tuple[int, int, float]:
         orient_ok = 0 if ((orientation == "portrait" and a.is_portrait) or (orientation == "landscape" and not a.is_portrait)) else 1
         hd_ok = 0 if max(a.width, a.height) >= 1280 else 1
         return (orient_ok, hd_ok, -min(30.0, a.duration))
 
-    pool.sort(key=asset_priority)
+    for bucket in buckets:
+        bucket.sort(key=asset_priority)
+
+    pool: list[MediaAsset] = []
+    max_depth = max((len(b) for b in buckets), default=0)
+    for depth in range(max_depth):
+        for bucket in buckets:
+            if depth < len(bucket):
+                pool.append(bucket[depth])
 
     clips_dir = work_dir / "clips"
     clips_dir.mkdir(parents=True, exist_ok=True)
