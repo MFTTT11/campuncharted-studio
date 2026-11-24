@@ -1,6 +1,6 @@
 {
   "quota": {
-    "2026-11-23": 1750
+    "2026-11-24": 1650
   },
   "videos": {
     "KNkAeiRp3so": {
@@ -342,7 +342,68 @@
       "comment_posted": false,
       "publish_at": "2026-11-23T23:15:00Z",
       "queued_at": "2026-11-23T19:19:54.637205+00:00"
+    },
+    "eM9KEwi1S1M": {
+      "title": "The Mountain Lake Born From a Catastrophic Earthquake",
+      "description": "In 1139, a powerful earthquake split Mount Kapaz and created Azerbaijan's stunning Lake Göygöl in minutes. Would you visit this ancient catastrophe turned natural wonder?\n\nKey Takeaway: Lake Göygöl in Azerbaijan was formed on September 25, 1139, when a massive earthquake collapsed Mount Kapaz and dammed the Kürəkçay River.\n\nQ: How was Lake Goygol formed in Azerbaijan?\nA: Lake Göygöl was created on September 25, 1139, when a massive earthquake collapsed parts of Mount Kapaz, blocking the Kürəkçay River and trapping pure subalpine water.\n\nSubscribe to @CampUncharted for real outdoor stories, backcountry safety, and Earth's wildest places.\n\nReferences:\n- https://en.wikipedia.org/wiki/G%C3%B6yg%C3%B6l_(lake)\n- https://en.wikipedia.org/wiki/G%C3%B6yg%C3%B6l_National_Park\n\n#LakeGoygol #GoygolNationalPark #AzerbaijanNature #MountKapaz #Shorts",
+      "cues": [
+        [
+          0.0,
+          4.002,
+          "This crystal blue mountain lake did not exist nine hundred years ago."
+        ],
+        [
+          4.062,
+          8.483,
+          "In 1139, a violent earthquake fractured Mount Kapaz in Azerbaijan."
+        ],
+        [
+          8.543,
+          12.485,
+          "Massive rockslides shattered the mountain and dammed the roaring Kürəkçay River."
+        ],
+        [
+          12.545,
+          16.822,
+          "Pure subalpine water trapped behind stone flooded the valley instantly."
+        ],
+        [
+          16.882,
+          20.154,
+          "Sitting fifteen hundred meters high, it created Lake Göygöl."
+        ],
+        [
+          20.214,
+          24.796,
+          "Today, dense oak forests and rare endemic plants envelope these shores."
+        ],
+        [
+          24.856,
+          28.73,
+          "Cataclysmic destruction produced one of the purest lakes in Eurasia."
+        ],
+        [
+          28.79,
+          32.678,
+          "Would you trek into these ancient Caucasus mountains, or stay far away?"
+        ]
+      ],
+      "done_langs": [
+        "de",
+        "en",
+        "es",
+        "tr"
+      ],
+      "localized_langs": [
+        "de",
+        "es",
+        "tr"
+      ],
+      "pinned_comment": "If you could explore any landscape formed by a historical earthquake, where would you go?",
+      "comment_posted": false,
+      "publish_at": "2026-11-24T13:15:00Z",
+      "queued_at": "2026-11-24T04:22:05.341010+00:00"
     }
   },
-  "updated_at": "2026-11-23T19:19:54.638522+00:00"
+  "updated_at": "2026-11-24T04:23:25.782697+00:00"
 }

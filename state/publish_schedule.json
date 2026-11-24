@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-23T19:19:54.631420+00:00",
+  "updated_at": "2026-11-24T04:22:04.921715+00:00",
   "slots": [
     {
       "publish_at": "2026-11-23T13:15:00Z",
@@ -14,6 +14,13 @@
       "video_id": "bkmbj6XY8LA",
       "title": "Why You Must Never Camp on a Canyon Floor",
       "recorded_at": "2026-11-23T19:19:54.631388+00:00"
+    },
+    {
+      "publish_at": "2026-11-24T13:15:00Z",
+      "format": "short",
+      "video_id": "eM9KEwi1S1M",
+      "title": "The Mountain Lake Born From a Catastrophic Earthquake",
+      "recorded_at": "2026-11-24T04:22:04.921687+00:00"
     }
   ]
 }

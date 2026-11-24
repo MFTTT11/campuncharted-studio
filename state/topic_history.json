@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-23T19:19:54.632929+00:00",
+  "updated_at": "2026-11-24T04:22:04.981857+00:00",
   "topics": [
     {
       "topic_id": "mistake_cotton_kills_trail",
@@ -36,6 +36,15 @@
       "duration_seconds": 27.8,
       "format": "short",
       "created_at": "2026-11-23T19:19:54.632917+00:00"
+    },
+    {
+      "topic_id": "eurasia_goygol_azerbaijan",
+      "series": "TURKEY_AND_EURASIA_HIDDEN",
+      "title": "The Mountain Lake Born From a Catastrophic Earthquake",
+      "video_id": "eM9KEwi1S1M",
+      "duration_seconds": 32.7,
+      "format": "short",
+      "created_at": "2026-11-24T04:22:04.981839+00:00"
     }
   ]
 }
