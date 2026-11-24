@@ -1,0 +1,64 @@
+{
+  "updated_at": "2026-11-24T07:35:16.763521+00:00",
+  "quota": {
+    "2026-11-24": 400
+  },
+  "processed": {
+    "UgySm9RWfxiTyDUu0Wh4AaABAg": {
+      "video_id": "GKs8znMUF_c",
+      "status": "REPLIED",
+      "sentiment": "positive",
+      "reply": "Beğenmene çok sevindim! Sen de doğa yürüyüşlerini ve kamp yapmayı sever misin? ⛰️",
+      "at": "2026-11-24T07:35:16.763521+00:00"
+    },
+    "UgznSHyw_29f2RpTL6N4AaABAg": {
+      "video_id": "MT46H-UoF8Y",
+      "status": "REPLIED",
+      "sentiment": "positive",
+      "reply": "Harika bir enerji! Aladağlar'ın muhteşem doğasında gün senin olsun ⛰️ Bu aralar yeni bir kamp planın var mı?",
+      "at": "2026-11-24T07:35:16.763521+00:00"
+    },
+    "Ugx46FOKIq05ek-tgBV4AaABAg": {
+      "video_id": "ke5nfRI4kAE",
+      "status": "REPLIED",
+      "sentiment": "positive",
+      "reply": "Aramıza hoş geldin, desteğin için çok teşekkürler! Macera dolu yeni videolar yakında geliyor. ⛰️",
+      "at": "2026-11-24T07:35:16.763521+00:00"
+    },
+    "UgwKSSRymUXp0fnQldh4AaABAg": {
+      "video_id": "6tjltka7Fu4",
+      "status": "REPLIED",
+      "sentiment": "positive",
+      "reply": "Glad it gave you a chuckle! 😅 Have you ever been to Lake Tahoe?",
+      "at": "2026-11-24T07:35:16.763521+00:00"
+    },
+    "Ugzk0ZF2_X6dYWILQO54AaABAg": {
+      "video_id": "CZGVg3A96hc",
+      "status": "REPLIED",
+      "sentiment": "question",
+      "reply": "Evet, Trabzon'un tarihi yerlerini ve doğasını keşfettim! Sen daha önce buraları gezdin mi? 🏕️",
+      "at": "2026-11-24T07:35:16.763521+00:00"
+    },
+    "UgyzPWdW8GWpwRmSZ6h4AaABAg": {
+      "video_id": "8jp-DCBwxuo",
+      "status": "REPLIED",
+      "sentiment": "question",
+      "reply": "Burası İsviçre'nin araç girişine izin verilmeyen harika dağ kasabası Zermatt! ⛰️ Daha önce böyle bir yer görmüş müydün?",
+      "at": "2026-11-24T07:35:16.763521+00:00"
+    },
+    "UgzvTIhkwQyVglqDnwp4AaABAg": {
+      "video_id": "9UDDvwNJYd4",
+      "status": "REPLIED",
+      "sentiment": "positive",
+      "reply": "Couldn't agree more, it's a true year-round playground! Have you had the chance to camp there yourself yet? ⛰️",
+      "at": "2026-11-24T07:35:16.763521+00:00"
+    },
+    "UgxyfgDFccDtfMTQnT54AaABAg": {
+      "video_id": "MjcgHz-JFtQ",
+      "status": "REPLIED",
+      "sentiment": "positive",
+      "reply": "No way, you are so lucky to live in such a stunning spot! What is your absolute favorite trail around there? ⛰️",
+      "at": "2026-11-24T07:35:16.763521+00:00"
+    }
+  }
+}
