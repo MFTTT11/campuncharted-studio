@@ -1,6 +1,6 @@
 {
   "quota": {
-    "2026-11-24": 1650
+    "2026-11-24": 1800
   },
   "videos": {
     "KNkAeiRp3so": {
@@ -284,7 +284,10 @@
         "es"
       ],
       "localized_langs": [
-        "es"
+        "de",
+        "es",
+        "fr",
+        "tr"
       ],
       "pinned_comment": "If your boat washed ashore here, would you wait on the beach or hike into the desert?",
       "comment_posted": true,
@@ -337,9 +340,14 @@
         ]
       ],
       "done_langs": [],
-      "localized_langs": [],
+      "localized_langs": [
+        "de",
+        "es",
+        "fr",
+        "tr"
+      ],
       "pinned_comment": "Have you ever been woken up by a sudden windstorm while camping in a canyon?",
-      "comment_posted": false,
+      "comment_posted": true,
       "publish_at": "2026-11-23T23:15:00Z",
       "queued_at": "2026-11-23T19:19:54.637205+00:00"
     },
@@ -397,13 +405,14 @@
       "localized_langs": [
         "de",
         "es",
+        "fr",
         "tr"
       ],
       "pinned_comment": "If you could explore any landscape formed by a historical earthquake, where would you go?",
-      "comment_posted": false,
+      "comment_posted": true,
       "publish_at": "2026-11-24T13:15:00Z",
       "queued_at": "2026-11-24T04:22:05.341010+00:00"
     }
   },
-  "updated_at": "2026-11-24T04:23:25.782697+00:00"
+  "updated_at": "2026-11-24T15:54:25.915557+00:00"
 }

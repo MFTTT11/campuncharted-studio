@@ -1,29 +1,29 @@
 {
   "period": {
-    "start": "2026-10-22",
-    "end": "2026-11-21"
+    "start": "2026-10-23",
+    "end": "2026-11-22"
   },
   "channel_stats": {
     "subscribers": 26,
-    "total_views": 32711,
-    "video_count": 243
+    "total_views": 34716,
+    "video_count": 246
   },
   "rolling_30d": {
-    "views": 2348,
-    "watch_minutes": 354.0,
+    "views": 2326,
+    "watch_minutes": 349.0,
     "avg_view_duration_sec": 23.0,
-    "avg_view_percentage": 33.8,
+    "avg_view_percentage": 33.2,
     "subscribers_gained": 24,
     "subscribers_lost": 22,
     "net_subscribers": 2,
-    "likes": 19,
+    "likes": 18,
     "comments": 1
   },
   "series_metrics": {
     "CAMP_MISTAKES": {
       "count": 1,
-      "avg_views": 426.0,
-      "avg_avp": 43.7,
+      "avg_views": 436.0,
+      "avg_avp": 42.1,
       "net_subs": 0
     }
   },
@@ -39,8 +39,8 @@
       "video_id": "KNkAeiRp3so",
       "title": "Why Outdoor Guides Call Cotton the Silent Killer",
       "series": "CAMP_MISTAKES",
-      "views": 426,
-      "avp": 43.7,
+      "views": 436,
+      "avp": 42.1,
       "avd": 18.0,
       "net_subs": 0
     },
@@ -63,15 +63,6 @@
       "net_subs": 0
     },
     {
-      "video_id": "J4h6myWqUCM",
-      "title": "Meteora: Monasteries atop giant sandstone pillars | Thessaly, Greece #Shorts #Camp",
-      "series": "LEGACY",
-      "views": 98,
-      "avp": 56.8,
-      "avd": 30.0,
-      "net_subs": 0
-    },
-    {
       "video_id": "eolo2RKm-Zk",
       "title": "Edirne: The Most Contested Frontier City on Earth | Edirne... #Shorts #Camp",
       "series": "LEGACY",
@@ -81,11 +72,20 @@
       "net_subs": 0
     },
     {
+      "video_id": "J4h6myWqUCM",
+      "title": "Meteora: Monasteries atop giant sandstone pillars | Thessaly, Greece #Shorts #Camp",
+      "series": "LEGACY",
+      "views": 87,
+      "avp": 55.4,
+      "avd": 29.0,
+      "net_subs": 0
+    },
+    {
       "video_id": "Gdz0SchEX7s",
       "title": "Konya: Exploring Central Anatolian Plateau History | Konya... #Shorts #Camp",
       "series": "LEGACY",
-      "views": 75,
-      "avp": 28.1,
+      "views": 70,
+      "avp": 27.8,
       "avd": 20.0,
       "net_subs": 0
     },
@@ -108,6 +108,11 @@
       "net_subs": 0
     }
   ],
-  "summary_guidance": "Last 30d channel performance: 2348 views, 33.8% average view percentage, +2 net subscribers. Top-performing series right now: CAMP_MISTAKES (44% avg AVP, 426 avg views). Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations.",
-  "updated_at": "2026-11-23T15:58:03.190811+00:00"
+  "summary_guidance": "Last 30d channel performance: 2326 views, 33.2% average view percentage, +2 net subscribers. Top-performing series right now: CAMP_MISTAKES (42% avg AVP, 436 avg views). Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations. Live YouTube trends: Improvised bushcraft and household ignition hacks drive massive curiosity by turning everyday items into extreme survival tools. | Backcountry mistakes and wild animal encounter warnings capture high retention through immediate tension and life-saving utility.",
+  "updated_at": "2026-11-24T15:53:10.006484+00:00",
+  "live_youtube_trends": [
+    "Improvised bushcraft and household ignition hacks drive massive curiosity by turning everyday items into extreme survival tools.",
+    "Backcountry mistakes and wild animal encounter warnings capture high retention through immediate tension and life-saving utility.",
+    "Extreme weather physics and storm-proofing gear hacks achieve high shareability by debunking common camper safety myths."
+  ]
 }
