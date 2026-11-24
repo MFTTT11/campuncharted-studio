@@ -195,7 +195,15 @@ def run_analytics_optimization(
         "Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations."
     )
 
-    insights = {
+    existing_trends = [
+        str(p).strip()
+        for p in (existing_insights.get("live_youtube_trends") or [])
+        if str(p).strip()
+    ][:4]
+    if existing_trends:
+        guidance = f"{guidance} Live YouTube trends: {' | '.join(existing_trends[:2])}".strip()
+
+    insights: dict[str, Any] = {
         "period": {"start": start_s, "end": end_s},
         "channel_stats": {
             "subscribers": channel_info.get("subscribers", 0),
@@ -218,6 +226,8 @@ def run_analytics_optimization(
         "top_videos": top_videos,
         "summary_guidance": guidance,
     }
+    if existing_trends:
+        insights["live_youtube_trends"] = existing_trends
     store.save_channel_insights(insights)
     store.append_analytics_snapshot(
         {

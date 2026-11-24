@@ -420,5 +420,564 @@ def test_comment_engine_filters_spam_owner_and_replied_threads() -> None:
     assert pending[0]["video_id"] == "vid2"
 
 
+def test_comment_engine_handles_viewer_replies_on_owner_starter_comment_and_paginates(tmp_path: Path) -> None:
+    from campuncharted.comment_engine import (
+        filter_unreplied_viewer_threads,
+        run_comment_engagement,
+    )
+
+    starter_thread_with_viewer_reply = {
+        "id": "th_starter",
+        "snippet": {
+            "videoId": "vid_short_1",
+            "topLevelComment": {
+                "id": "c_starter",
+                "snippet": {
+                    "authorChannelId": {"value": EXPECTED_CHANNEL_ID},
+                    "authorDisplayName": "CampUncharted",
+                    "textOriginal": "Have you ever been caught in soaked clothing on a freezing trail?",
+                },
+            },
+        },
+        "replies": {
+            "comments": [
+                {
+                    "id": "rep_old_viewer",
+                    "snippet": {
+                        "authorChannelId": {"value": "UC_V1"},
+                        "authorDisplayName": "OldViewer",
+                        "textOriginal": "Yes once in 2022!",
+                        "publishedAt": "2026-11-23T10:00:00Z",
+                    },
+                },
+                {
+                    "id": "rep_owner_ack",
+                    "snippet": {
+                        "authorChannelId": {"value": EXPECTED_CHANNEL_ID},
+                        "authorDisplayName": "CampUncharted",
+                        "textOriginal": "Glad you made it out warm!",
+                        "publishedAt": "2026-11-23T11:00:00Z",
+                    },
+                },
+                {
+                    "id": "rep_new_viewer",
+                    "snippet": {
+                        "authorChannelId": {"value": "UC_V2"},
+                        "authorDisplayName": "Deniz",
+                        "textOriginal": "Kaçkar'da başıma geldi, merino yün hayat kurtarıyor!",
+                        "publishedAt": "2026-11-23T12:00:00Z",
+                    },
+                },
+            ]
+        },
+    }
+    pending = filter_unreplied_viewer_threads(
+        [starter_thread_with_viewer_reply],
+        owner_channel_id=EXPECTED_CHANNEL_ID,
+        processed_thread_ids=set(),
+    )
+    assert len(pending) == 1
+    assert pending[0]["thread_id"] == "rep_new_viewer"
+    assert pending[0]["parent_id"] == "c_starter"
+    assert pending[0]["video_id"] == "vid_short_1"
+
+    # Verify pagination reaches page 2 when page 1 only has owner starter comments
+    page_calls: list[str | None] = []
+
+    class FakeCommentThreads:
+        def list(self, **kwargs):
+            tok = kwargs.get("pageToken")
+            page_calls.append(tok)
+            if tok is None:
+                return SimpleNamespace(
+                    execute=lambda: {
+                        "items": [
+                            {
+                                "id": "th_own_only",
+                                "snippet": {
+                                    "videoId": "v1",
+                                    "topLevelComment": {
+                                        "id": "c1",
+                                        "snippet": {
+                                            "authorChannelId": {"value": EXPECTED_CHANNEL_ID},
+                                            "textOriginal": "Question?",
+                                        },
+                                    },
+                                },
+                            }
+                        ],
+                        "nextPageToken": "PAGE2",
+                    }
+                )
+            return SimpleNamespace(execute=lambda: {"items": [starter_thread_with_viewer_reply]})
+
+    class FakeVideos:
+        def list(self, **kwargs):
+            return SimpleNamespace(execute=lambda: {"items": [{"id": "vid_short_1", "snippet": {"title": "Cotton Rule"}}]})
+
+    fake_yt = SimpleNamespace(commentThreads=lambda: FakeCommentThreads(), videos=lambda: FakeVideos())
+    store = StateStore(tmp_path / "comment_state")
+    stats = run_comment_engagement(fake_yt, store, api_key="", max_replies=8, dry_run=True)
+    assert page_calls == [None, "PAGE2"]
+    assert stats["scanned"] == 2
+    assert stats["new_viewer_comments"] == 1
 
 
+def test_subtitle_queue_decouples_comments_prevents_starvation_and_preserves_state(tmp_path: Path) -> None:
+    from campuncharted.config import ApiCredentials
+    from campuncharted.youtube_engine import (
+        enqueue_video_for_post_processing,
+        process_subtitle_queue,
+    )
+
+    store = StateStore(tmp_path / "sub_state")
+    cues = [(0.0, 2.0, "Never camp on a dry canyon floor.")]
+    enqueue_video_for_post_processing(
+        store,
+        video_id="vid_old",
+        title="Old Video",
+        description="Old desc",
+        cues=cues,
+        pinned_comment="Would you camp here?",
+        comment_posted=False,
+        publish_at="2026-11-23T13:15:00Z",
+    )
+    enqueue_video_for_post_processing(
+        store,
+        video_id="vid_new",
+        title="New Video",
+        description="New desc",
+        cues=cues,
+        pinned_comment="Have you tried this?",
+        comment_posted=False,
+        publish_at="2026-11-24T13:15:00Z",
+    )
+
+    # Re-enqueuing an existing video MUST NOT wipe done_langs or comment_posted
+    q = store.get_subtitle_queue()
+    q["videos"]["vid_old"]["done_langs"] = ["en"]
+    q["videos"]["vid_old"]["localized_langs"] = ["es"]
+    store.save_subtitle_queue(q)
+    enqueue_video_for_post_processing(
+        store,
+        video_id="vid_old",
+        title="Old Video",
+        description="Old desc",
+        cues=cues,
+        pinned_comment="Would you camp here?",
+        comment_posted=False,
+    )
+    q_after = store.get_subtitle_queue()
+    assert q_after["videos"]["vid_old"]["done_langs"] == ["en"]
+    assert q_after["videos"]["vid_old"]["localized_langs"] == ["es"]
+
+    # Even when today's caption quota is ALREADY FULL (1800/1800), due delayed comment MUST STILL BE POSTED!
+    q_after["quota"] = {"2026-11-24": 1800}
+    store.save_subtitle_queue(q_after)
+
+    posted_comments: list[str] = []
+    uploaded_captions: list[tuple[str, str]] = []
+
+    class FakeComments:
+        def insert(self, **kwargs):
+            vid = kwargs["body"]["snippet"]["videoId"]
+            posted_comments.append(vid)
+            return SimpleNamespace(execute=lambda: {"id": "c_posted"})
+
+    class FakeCaptions:
+        def insert(self, **kwargs):
+            snip = kwargs["body"]["snippet"]
+            uploaded_captions.append((snip["videoId"], snip["language"]))
+            return SimpleNamespace(execute=lambda: {"id": "cap_id"})
+
+    fake_yt = SimpleNamespace(commentThreads=lambda: FakeComments(), captions=lambda: FakeCaptions())
+    now = datetime(2026, 11, 24, 5, 0, 0, tzinfo=timezone.utc)
+    stats_full = process_subtitle_queue(
+        fake_yt,
+        store,
+        ApiCredentials(gemini_api_key=""),
+        tmp_path / "work1",
+        now_utc=now,
+    )
+    assert posted_comments == ["vid_old"]  # vid_new is scheduled for 13:15 UTC so not due yet
+    assert stats_full["comments_posted"] == 1
+    assert stats_full["captions_uploaded"] == 0
+
+    # On a fresh day with max_captions=1, vid_new gets English caption without burning all daily budget
+    next_day = datetime(2026, 11, 25, 8, 0, 0, tzinfo=timezone.utc)
+    stats_fresh = process_subtitle_queue(
+        fake_yt,
+        store,
+        ApiCredentials(gemini_api_key=""),
+        tmp_path / "work2",
+        max_captions=1,
+        now_utc=next_day,
+    )
+    assert uploaded_captions == [("vid_new", "en")]
+    assert stats_fresh["captions_uploaded"] == 1
+    assert stats_fresh["comments_posted"] == 1  # vid_new is now past 2026-11-24T13:15Z!
+    assert stats_fresh["quota_used_today"] == 400
+
+
+def test_analytics_preserves_live_trends_and_deduplicates_daily_snapshots(tmp_path: Path) -> None:
+    from campuncharted.analytics_engine import run_analytics_optimization
+
+    store = StateStore(tmp_path / "ana_state")
+    store.save_channel_insights(
+        {
+            "series_weights": dict(DEFAULT_SERIES_WEIGHTS),
+            "live_youtube_trends": [
+                "Visual contrast between fatal mistakes and survival hacks drives saves.",
+                "Short fire-starting bushcraft physics hooks viewers in 2 seconds.",
+            ],
+        }
+    )
+
+    class FakeReports:
+        def query(self, **kwargs):
+            if "dimensions" in kwargs:
+                return SimpleNamespace(execute=lambda: {"columnHeaders": [], "rows": []})
+            return SimpleNamespace(
+                execute=lambda: {
+                    "columnHeaders": [
+                        {"name": "views"},
+                        {"name": "estimatedMinutesWatched"},
+                        {"name": "averageViewDuration"},
+                        {"name": "averageViewPercentage"},
+                        {"name": "subscribersGained"},
+                        {"name": "subscribersLost"},
+                        {"name": "likes"},
+                        {"name": "comments"},
+                    ],
+                    "rows": [[2500, 380.0, 24.0, 38.5, 10, 2, 40, 3]],
+                }
+            )
+
+    fake_yt = SimpleNamespace(videos=lambda: SimpleNamespace(list=lambda **kw: SimpleNamespace(execute=lambda: {"items": []})))
+    fake_ana = SimpleNamespace(reports=lambda: FakeReports())
+    ch_info = {"subscribers": 30, "views": 35000, "video_count": 245}
+
+    out1 = run_analytics_optimization(fake_yt, fake_ana, store, ch_info)
+    assert len(out1["live_youtube_trends"]) == 2
+    assert "Live YouTube trends:" in out1["summary_guidance"]
+
+    # Running a second time on the same UTC day must NOT create duplicate date entries
+    run_analytics_optimization(fake_yt, fake_ana, store, ch_info)
+    hist = store.get_analytics_history()["snapshots"]
+    assert len(hist) == 1
+
+
+def test_trend_radar_and_catalog_block_duplicate_concepts_and_locations(tmp_path: Path) -> None:
+    import json
+    from campuncharted.state_store import atomic_write_json
+    from campuncharted.trend_radar import synthesize_trending_topics
+
+    store = StateStore(tmp_path / "dedup_trends")
+    store.record_topic(
+        topic_id="trend_pine_resin_tinder_survival_hack",
+        series="GEAR_AND_HACKS",
+        title="Why Wise Campers Collect Pine Resin in Rain",
+        video_id="tfYyd6e93jM",
+        format_type="short",
+    )
+    # Record one evergreen short afterwards so pick_next_short_topic prefers unused_trending
+    store.record_topic(
+        topic_id="eurasia_goygol_azerbaijan",
+        series="TURKEY_AND_EURASIA_HIDDEN",
+        title="The Mountain Lake Born From a Catastrophic Earthquake",
+        video_id="eM9KEwi1S1M",
+        format_type="short",
+    )
+    atomic_write_json(
+        store.state_dir / "trending_topics.json",
+        {
+            "topics": [
+                {
+                    "topic_id": "trend_pine_resin_fatwood_fire",
+                    "series": "GEAR_AND_HACKS",
+                    "subject": "Harvesting pine resin fatwood for wet fire starting",
+                    "angle_hook": "Natural waterproof fire starter",
+                    "location_name": "",
+                },
+                {
+                    "topic_id": "trend_kackar_1",
+                    "series": "TURKEY_AND_EURASIA_HIDDEN",
+                    "subject": "Glacial lakes of Kaçkar Mountains",
+                    "angle_hook": "Alpine tarns",
+                    "location_name": "Kaçkar Mountains National Park, Turkey",
+                },
+                {
+                    "topic_id": "trend_kackar_2",
+                    "series": "TURKEY_AND_EURASIA_HIDDEN",
+                    "subject": "Hidden turquoise lakes in Kaçkar Mountains",
+                    "angle_hook": "Alpine tarns 2",
+                    "location_name": "Kaçkar Mountains National Park, Turkey",
+                },
+                {
+                    "topic_id": "trend_unique_compass_declination",
+                    "series": "CAMP_MISTAKES",
+                    "subject": "Why ignoring magnetic declination leads hikers miles off course",
+                    "angle_hook": "Your compass does not point to true north",
+                    "location_name": "",
+                },
+            ]
+        },
+    )
+
+    # Pine resin duplicate must NEVER be selected even when trending pool is preferred
+    picked = pick_next_short_topic(store)
+    assert picked.topic_id != "trend_pine_resin_fatwood_fire"
+    assert picked.topic_id in {"trend_kackar_1", "trend_unique_compass_declination"}
+
+    # Verify synthesize_trending_topics injects covered topics into prompt and prunes duplicates
+    prompts_seen: list[str] = []
+
+    class FakeTrendModels:
+        def list(self):
+            return [SimpleNamespace(name="models/gemini-3.5-flash", supported_actions=["generateContent"])]
+
+        def generate_content(self, *, model: str, contents: str, config: dict):
+            prompts_seen.append(contents)
+            return SimpleNamespace(
+                text=json.dumps(
+                    {
+                        "trend_patterns": ["Practical navigation rules earn high saves."],
+                        "ideas": [
+                            {
+                                "topic_id": "trend_pine_resin_duplicate_2",
+                                "series": "GEAR_AND_HACKS",
+                                "subject": "Collecting pine resin for wet campfire ignition",
+                                "angle_hook": "Pine resin burns in rain",
+                                "wiki_titles": ["Pine_resin"],
+                                "visual_queries": ["pine tree resin"],
+                                "location_name": "",
+                                "mood": "FOREST_RAIN",
+                                "inspired_by_pattern": "Bushcraft fire hack",
+                            },
+                            {
+                                "topic_id": "trend_kackar_duplicate_3",
+                                "series": "TURKEY_AND_EURASIA_HIDDEN",
+                                "subject": "Backcountry camping in Kaçkar Mountains",
+                                "angle_hook": "Alpine ridge",
+                                "wiki_titles": ["Kaçkar_Mountains"],
+                                "visual_queries": ["kackar mountains turkey"],
+                                "location_name": "Kaçkar Mountains National Park, Turkey",
+                                "mood": "ALPINE_WIND",
+                                "inspired_by_pattern": "Hidden Eurasia spot",
+                            },
+                            {
+                                "topic_id": "trend_altitude_boil_cooking_myth",
+                                "series": "EXTREME_WEATHER_NATURE",
+                                "subject": "Why boiling water at high altitude leaves backcountry meals undercooked",
+                                "angle_hook": "Lower air pressure changes boiling physics",
+                                "wiki_titles": ["High-altitude_cooking"],
+                                "visual_queries": ["camping stove mountain snow"],
+                                "location_name": "",
+                                "mood": "ALPINE_WIND",
+                                "inspired_by_pattern": "Counter-intuitive mountain physics",
+                            },
+                            {
+                                "topic_id": "trend_paracord_wet_stretch_guylines",
+                                "series": "GEAR_AND_HACKS",
+                                "subject": "Why nylon paracord sags in overnight rain while dyneema guylines stay taut",
+                                "angle_hook": "Hydrophilic fibers silently collapse taut tarps",
+                                "wiki_titles": ["Parachute_cord"],
+                                "visual_queries": ["rain tarp guyline forest"],
+                                "location_name": "",
+                                "mood": "FOREST_RAIN",
+                                "inspired_by_pattern": "Practical shelter rigging physics",
+                            },
+                        ],
+                    }
+                )
+            )
+
+    import campuncharted.trend_radar as trend_radar_mod
+
+    orig_client = trend_radar_mod.genai.Client
+    trend_radar_mod.genai.Client = lambda **kw: SimpleNamespace(models=FakeTrendModels())
+    try:
+        res = synthesize_trending_topics(
+            [
+                {
+                    "title": "Camping hack #shorts",
+                    "views": 50000,
+                    "age_days": 3.0,
+                    "views_per_day": 16666.0,
+                    "outlier_ratio": 12.0,
+                    "duration_sec": 35,
+                }
+            ],
+            store,
+            api_key="dummy",
+        )
+    finally:
+        trend_radar_mod.genai.Client = orig_client
+
+    assert prompts_seen and "Pine Resin" in prompts_seen[0]
+    assert res["added"] == 1  # Only genuinely new paracord idea added; pine resin, Kackar & catalog boiling duplicates rejected!
+    saved = json.loads((store.state_dir / "trending_topics.json").read_text(encoding="utf-8"))
+    saved_ids = [t["topic_id"] for t in saved["topics"]]
+    assert "trend_paracord_wet_stretch_guylines" in saved_ids
+    assert "trend_altitude_boil_cooking_myth" not in saved_ids
+    assert "trend_pine_resin_fatwood_fire" not in saved_ids
+    assert "trend_pine_resin_duplicate_2" not in saved_ids
+    assert "trend_kackar_2" not in saved_ids
+    assert "trend_kackar_duplicate_3" not in saved_ids
+
+
+def test_wikimedia_asset_key_is_deterministic_sha256() -> None:
+    import hashlib
+    from campuncharted.media_engine import search_wikimedia_commons
+
+    title = "File:Banff_Moraine_Lake_Sunrise.webm"
+    expected_key = f"wmc_{hashlib.sha256(title.encode('utf-8')).hexdigest()[:12]}"
+
+    class FakeResp:
+        status_code = 200
+
+        def json(self):
+            return {
+                "query": {
+                    "pages": {
+                        "1": {
+                            "title": title,
+                            "imageinfo": [
+                                {
+                                    "mime": "video/webm",
+                                    "width": 1920,
+                                    "height": 1080,
+                                    "size": 5_000_000,
+                                    "duration": 14.0,
+                                    "url": "https://upload.wikimedia.org/test.webm",
+                                    "descriptionurl": "https://commons.wikimedia.org/wiki/" + title,
+                                    "extmetadata": {
+                                        "LicenseShortName": {"value": "CC BY 4.0"},
+                                        "Artist": {"value": "Jane Doe"},
+                                    },
+                                }
+                            ],
+                        }
+                    }
+                }
+            }
+
+    fake_session = SimpleNamespace(get=lambda *a, **kw: FakeResp())
+    assets = search_wikimedia_commons("Banff lake", session=fake_session)
+    assert len(assets) == 1
+    assert assets[0].asset_key == expected_key
+
+
+def test_doc_validation_chunked_translation_and_invalid_json_fallback() -> None:
+    import json
+    from campuncharted.content_engine import (
+        TranslationBatch,
+        _generate_structured_with_fallback,
+        translate_subtitles_and_metadata,
+        validate_and_polish_documentary_script,
+    )
+
+    topic = DOCUMENTARY_TOPICS[0]
+    raw_doc = DocumentaryScript(
+        title="Banff Hidden Glacial Valleys #Documentary...",
+        thumbnail_hook="NEON GLACIER LAKES",
+        description_intro="Deep in the Canadian Rockies.",
+        pinned_comment="Have you hiked Banff?",
+        tags=["#banff", "<script>", "rockies", "banff", "a" * 40],
+        chapters=[
+            DocumentaryChapter(chapter_title="Chapter 1: Into The Ice", narration="Chapter 1: " + ("glacial " * 130), visual_queries=[]),
+            DocumentaryChapter(chapter_title="Chapter 2: Rock Flour", narration="mineral " * 130, visual_queries=["banff lake"]),
+            DocumentaryChapter(chapter_title="Chapter 3: Grizzly Trails", narration="wildlife " * 130, visual_queries=["bear forest"]),
+            DocumentaryChapter(chapter_title="Chapter 4: Alpine Dusk", narration="mountain " * 130, visual_queries=["alpine dusk"]),
+        ],
+    )
+    polished = validate_and_polish_documentary_script(raw_doc, topic)
+    assert "#" not in polished.title and "..." not in polished.title
+    assert all("<" not in t and ">" not in t and "#" not in t and len(t) <= 30 for t in polished.tags)
+    assert polished.chapters[0].chapter_title == "Into The Ice"
+    assert not polished.chapters[0].narration.startswith("Chapter 1:")
+    assert len(polished.chapters[0].visual_queries) >= 1
+
+    # Verify _generate_structured_with_fallback falls back on empty / malformed JSON response
+    models_called: list[str] = []
+
+    class FakeFallbackModels:
+        def list(self):
+            return [
+                SimpleNamespace(name="models/gemini-3.5-flash", supported_actions=["generateContent"]),
+                SimpleNamespace(name="models/gemini-3.8-flash", supported_actions=["generateContent"]),
+            ]
+
+        def generate_content(self, *, model: str, contents: str, config: dict):
+            models_called.append(model)
+            if model == "gemini-3.5-flash":
+                return SimpleNamespace(text="")  # Empty response -> must fall back, not crash!
+            return SimpleNamespace(
+                text=json.dumps({"localized_title": "Ok", "localized_description": "Desc", "translated_lines": ["A"]})
+            )
+
+    used, parsed = _generate_structured_with_fallback(
+        SimpleNamespace(models=FakeFallbackModels()),
+        prompt="hi",
+        schema=TranslationBatch,
+        temperature=0.2,
+    )
+    assert models_called == ["gemini-3.5-flash", "gemini-3.8-flash"]
+    assert used == "gemini-3.8-flash"
+    assert parsed.localized_title == "Ok"
+
+    # Verify chunked subtitle translation handles 60 lines in chunks of 25 (25 + 25 + 10)
+    chunk_sizes_seen: list[int] = []
+
+    class FakeChunkModels:
+        def list(self):
+            return [SimpleNamespace(name="models/gemini-3.5-flash", supported_actions=["generateContent"])]
+
+        def generate_content(self, *, model: str, contents: str, config: dict):
+            json_blob = contents.split("INPUT JSON:\n", 1)[1].strip()
+            data = json.loads(json_blob)
+            lines = data["lines"]
+            chunk_sizes_seen.append(len(lines))
+            if "title" in data:
+                out = {
+                    "localized_title": "Titulo",
+                    "localized_description": "Descripcion",
+                    "translated_lines": [f"ES:{x}" for x in lines],
+                }
+            else:
+                out = {"translated_lines": [f"ES:{x}" for x in lines]}
+            return SimpleNamespace(text=json.dumps(out))
+
+    res = translate_subtitles_and_metadata(
+        title="Doc Title",
+        description="Long documentary description with chapters",
+        lines=[f"Line {i}" for i in range(60)],
+        target_lang="es",
+        api_key="dummy",
+        chunk_size=25,
+        client=SimpleNamespace(models=FakeChunkModels()),
+    )
+    assert chunk_sizes_seen == [25, 25, 10]
+    assert len(res.translated_lines) == 60
+    assert res.translated_lines[0] == "ES:Line 0"
+    assert res.translated_lines[-1] == "ES:Line 59"
+
+
+def test_ass_hook_banner_hex_and_word_timing_bounds(tmp_path: Path) -> None:
+    # Verify 8-digit ASS BackColour hex literal in HookBanner
+    words = build_word_timings(
+        "Stay dry out there.",
+        [
+            {"type": "WordBoundary", "offset_sec": 0.1, "duration_sec": 0.3, "text": "Stay"},
+            # Overshooting offset past clip_duration must clamp cleanly so end >= start
+            {"type": "WordBoundary", "offset_sec": 5.0, "duration_sec": 0.2, "text": "dry"},
+        ],
+        timeline_offset=0.0,
+        clip_duration=1.5,
+    )
+    assert all(w.end >= w.start for w in words)
+    beats = [BeatAudio(index=0, text="Stay dry", audio_path=tmp_path / "b.wav", start=0.0, duration=1.5, words=words)]
+    ass_path = generate_shorts_karaoke_ass(beats, tmp_path / "hook.ass", hook_banner="STAY DRY")
+    ass_text = ass_path.read_text(encoding="utf-8")
+    assert "&HA0000000," in ass_text
+    assert "&HA000000," not in ass_text

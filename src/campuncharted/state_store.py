@@ -28,6 +28,55 @@ def content_hash(parts: list[str]) -> str:
     return hashlib.sha256("|".join(normalized).encode("utf-8")).hexdigest()
 
 
+CONCEPT_STOPWORDS = frozenset(
+    {
+        "a", "above", "actually", "after", "an", "and", "are", "around", "at", "be", "before",
+        "beside", "best", "between", "by", "call", "camp", "camper", "campers", "camping", "campsite",
+        "can", "cause", "causes", "causing", "cold", "danger", "dangerous", "deadly", "do", "does",
+        "during", "earth", "fatal", "for", "from", "gear", "guide", "guides", "hack", "hacks",
+        "hazard", "hidden", "hike", "hikers", "hiking", "how", "in", "inside", "instant", "into",
+        "is", "it", "level", "make", "makes", "mistake", "mistakes", "most", "mountain", "mountains",
+        "must", "national", "natural", "naturally", "nature", "never", "night", "of", "on", "or",
+        "outdoor", "outdoors", "over", "park", "pitch", "pitching", "place", "places", "rapid",
+        "real", "really", "risk", "rule", "rules", "safe", "safety", "science", "secret", "secrets",
+        "short", "shorts", "silent", "simple", "spot", "spots", "stay", "stays", "still", "survival",
+        "survive", "tent", "that", "the", "this", "tip", "tips", "to", "trail", "trend", "triggers",
+        "truth", "under", "using", "weather", "what", "when", "where", "why", "wild", "wilderness",
+        "wise", "with", "without", "you", "your",
+    }
+)
+
+
+def concept_tokens(*parts: str) -> set[str]:
+    """Extract distinctive normalized content keywords for near-duplicate topic detection."""
+    tokens: set[str] = set()
+    for part in parts:
+        for tok in normalize_key(part).split():
+            if len(tok) >= 3 and tok not in CONCEPT_STOPWORDS and not tok.isdigit():
+                tokens.add(tok)
+    return tokens
+
+
+def is_near_duplicate_concept(candidate: set[str], existing_sets: list[set[str]]) -> bool:
+    """Return True if candidate shares >=2 distinctive keywords (>=28% of smaller set) or >=45% Jaccard overlap."""
+    if not candidate:
+        return False
+    for other in existing_sets:
+        if not other:
+            continue
+        overlap = candidate & other
+        if not overlap:
+            continue
+        if len(overlap) >= 3:
+            return True
+        if len(overlap) >= 2 and (len(overlap) / min(len(candidate), len(other))) >= 0.28:
+            return True
+        union = candidate | other
+        if len(overlap) / len(union) >= 0.45:
+            return True
+    return False
+
+
 def atomic_write_json(path: Path, data: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(prefix=path.name + ".", suffix=".tmp", dir=path.parent)
@@ -224,6 +273,9 @@ class StateStore:
     def append_analytics_snapshot(self, snapshot: dict[str, Any]) -> None:
         history = self.get_analytics_history()
         snapshots = list(history.get("snapshots", []))
+        snap_date = str(snapshot.get("date", "")).strip()
+        if snap_date:
+            snapshots = [row for row in snapshots if str(row.get("date", "")).strip() != snap_date]
         snapshots.append(snapshot)
         # Keep 90 days of daily snapshots
         history["snapshots"] = snapshots[-90:]

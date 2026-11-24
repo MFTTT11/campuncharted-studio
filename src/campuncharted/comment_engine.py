@@ -79,23 +79,59 @@ def filter_unreplied_viewer_threads(
     owner_channel_id: str,
     processed_thread_ids: set[str],
 ) -> list[dict[str, str]]:
-    """Extract clean, unreplied viewer comments (never replying to our own channel or already-answered threads)."""
+    """Extract clean, unreplied viewer comments AND viewer replies to our own starter comments."""
     pending: list[dict[str, str]] = []
     for item in threads:
         thread_id = str(item.get("id", "")).strip()
-        if not thread_id or thread_id in processed_thread_ids:
+        if not thread_id:
             continue
 
         top_wrap = item.get("snippet", {}).get("topLevelComment", {})
         top_id = str(top_wrap.get("id", "")).strip() or thread_id
         top_snip = top_wrap.get("snippet", {})
         author_cid = str(top_snip.get("authorChannelId", {}).get("value", "")).strip()
+        video_id = str(top_snip.get("videoId") or item.get("snippet", {}).get("videoId") or "")
+        existing_replies = list(item.get("replies", {}).get("comments", []) or [])
+
         if author_cid == owner_channel_id:
-            # Skip our own starter engagement comments!
+            # Our own starter engagement comment: reply to genuine viewer answers underneath it!
+            if not existing_replies:
+                continue
+            existing_replies.sort(key=lambda r: str(r.get("snippet", {}).get("publishedAt") or ""))
+            last_owner_ts = ""
+            for rep in existing_replies:
+                rep_snip = rep.get("snippet", {})
+                rep_cid = str(rep_snip.get("authorChannelId", {}).get("value", "")).strip()
+                if rep_cid == owner_channel_id:
+                    last_owner_ts = str(rep_snip.get("publishedAt") or "")
+            for rep in existing_replies:
+                rep_id = str(rep.get("id", "")).strip()
+                rep_snip = rep.get("snippet", {})
+                rep_cid = str(rep_snip.get("authorChannelId", {}).get("value", "")).strip()
+                rep_ts = str(rep_snip.get("publishedAt") or "")
+                if not rep_id or rep_cid == owner_channel_id or rep_id in processed_thread_ids:
+                    continue
+                if last_owner_ts and rep_ts and rep_ts <= last_owner_ts:
+                    continue
+                rep_text = " ".join(str(rep_snip.get("textOriginal") or rep_snip.get("textDisplay") or "").split()).strip()
+                if not rep_text:
+                    continue
+                pending.append(
+                    {
+                        "thread_id": rep_id,
+                        "parent_id": top_id,
+                        "video_id": video_id,
+                        "author_name": str(rep_snip.get("authorDisplayName") or "Camper").strip()[:60],
+                        "text": rep_text[:600],
+                        "published_at": rep_ts,
+                    }
+                )
             continue
 
-        # Check whether channel owner already replied in this thread
-        existing_replies = item.get("replies", {}).get("comments", []) or []
+        if thread_id in processed_thread_ids:
+            continue
+
+        # Check whether channel owner already replied in this viewer's thread
         already_replied = any(
             str(r.get("snippet", {}).get("authorChannelId", {}).get("value", "")).strip() == owner_channel_id
             for r in existing_replies
@@ -111,7 +147,7 @@ def filter_unreplied_viewer_threads(
             {
                 "thread_id": thread_id,
                 "parent_id": top_id,
-                "video_id": str(top_snip.get("videoId") or item.get("snippet", {}).get("videoId") or ""),
+                "video_id": video_id,
                 "author_name": str(top_snip.get("authorDisplayName") or "Camper").strip()[:60],
                 "text": text[:600],
                 "published_at": str(top_snip.get("publishedAt") or ""),
@@ -173,8 +209,9 @@ def run_comment_engagement(
     max_replies: int = 8,
     daily_budget: int = DAILY_COMMENT_QUOTA_BUDGET,
     dry_run: bool = False,
+    max_pages: int = 3,
 ) -> dict[str, Any]:
-    """Scan recent comments across the entire channel and post warm, quota-safe human replies."""
+    """Scan recent comments across the entire channel (up to 150 threads) and post warm, quota-safe human replies."""
     state_path = store.state_dir / "comment_replies.json"
     state = read_json(state_path, {"quota": {}, "processed": {}})
     processed: dict[str, Any] = dict(state.get("processed") or {})
@@ -189,22 +226,39 @@ def run_comment_engagement(
         print(f"[COMMENTS] Daily comment quota reached ({used_today}/{daily_budget}); waiting for tomorrow.", flush=True)
         return {"scanned": 0, "replied": 0, "skipped": 0, "quota_used_today": used_today}
 
-    try:
-        resp = (
-            youtube.commentThreads()
-            .list(
-                part="snippet,replies",
-                allThreadsRelatedToChannelId=owner_channel_id,
-                order="time",
-                maxResults=50,
-                textFormat="plainText",
-            )
-            .execute()
-        )
-        threads = resp.get("items") or []
-    except HttpError as err:
-        print(f"[COMMENTS] Failed to list channel comment threads: HTTP {getattr(err.resp, 'status', '?')}", flush=True)
-        return {"scanned": 0, "replied": 0, "skipped": 0, "quota_used_today": used_today}
+    threads: list[dict[str, Any]] = []
+    page_token: str | None = None
+    for _ in range(max(1, max_pages)):
+        try:
+            kwargs: dict[str, Any] = {
+                "part": "snippet,replies",
+                "allThreadsRelatedToChannelId": owner_channel_id,
+                "order": "time",
+                "maxResults": 50,
+                "textFormat": "plainText",
+            }
+            if page_token:
+                kwargs["pageToken"] = page_token
+            resp = youtube.commentThreads().list(**kwargs).execute()
+            page_items = resp.get("items") or []
+            threads.extend(page_items)
+            page_token = resp.get("nextPageToken")
+            if not page_token or not page_items:
+                break
+            # Stop fetching extra pages early once we already have plenty of unreplied viewer comments
+            if len(
+                filter_unreplied_viewer_threads(
+                    threads,
+                    owner_channel_id=owner_channel_id,
+                    processed_thread_ids=set(processed.keys()),
+                )
+            ) >= max(max_replies * 2, 12):
+                break
+        except HttpError as err:
+            print(f"[COMMENTS] Failed to list channel comment threads: HTTP {getattr(err.resp, 'status', '?')}", flush=True)
+            if not threads:
+                return {"scanned": 0, "replied": 0, "skipped": 0, "quota_used_today": used_today}
+            break
 
     candidates = filter_unreplied_viewer_threads(
         threads,

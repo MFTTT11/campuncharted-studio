@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .config import CATEGORY_EDUCATION, CATEGORY_TRAVEL_EVENTS, DEFAULT_SERIES_WEIGHTS
-from .state_store import StateStore, normalize_key
+from .state_store import StateStore, concept_tokens, is_near_duplicate_concept, normalize_key
 
 
 @dataclass(frozen=True)
@@ -1060,12 +1060,32 @@ def pick_next_short_topic(
 
     history = store.get_topic_history()
     used_topics = {normalize_key(row.get("topic_id", "")) for row in history}
-    unused_trending = [
-        t
-        for t in trending_pool
-        if normalize_key(t.topic_id) not in used_topics
-        and (not t.location_name or not store.is_location_uploaded(t.location_name))
+    history_concepts = [
+        concept_tokens(str(row.get("topic_id", "")), str(row.get("title", "")))
+        for row in history
+        if row.get("format") == "short"
     ]
+
+    unused_trending: list[ShortTopic] = []
+    seen_trend_locations: set[str] = set()
+    seen_trend_concepts: list[set[str]] = []
+    for t in trending_pool:
+        if normalize_key(t.topic_id) in used_topics:
+            continue
+        if t.location_name and store.is_location_uploaded(t.location_name):
+            continue
+        loc_base = normalize_key(t.location_name.split(",", 1)[0]) if t.location_name else ""
+        if loc_base and loc_base in seen_trend_locations:
+            continue
+        toks = concept_tokens(t.topic_id, t.subject, t.location_name)
+        if is_near_duplicate_concept(toks, history_concepts) or is_near_duplicate_concept(toks, seen_trend_concepts):
+            continue
+        if loc_base:
+            seen_trend_locations.add(loc_base)
+        if toks:
+            seen_trend_concepts.append(toks)
+        unused_trending.append(t)
+
     unused_evergreen = [
         t
         for t in SHORT_TOPICS

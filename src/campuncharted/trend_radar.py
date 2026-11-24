@@ -13,7 +13,15 @@ from pydantic import BaseModel, Field
 
 from .config import CATEGORY_EDUCATION, CATEGORY_TRAVEL_EVENTS
 from .content_engine import _generate_structured_with_fallback
-from .state_store import StateStore, atomic_write_json, normalize_key, read_json
+from .state_store import (
+    StateStore,
+    atomic_write_json,
+    concept_tokens,
+    is_near_duplicate_concept,
+    normalize_key,
+    read_json,
+)
+from .topic_catalog import SHORT_TOPICS
 
 # Rotating high-signal English camping & wilderness search queries (2 run per day = only ~202 YouTube quota units!)
 # Note: videoDuration='short' already filters to short-form videos, so crisp 2-word terms catch 10-15 viral outliers/day.
@@ -248,9 +256,49 @@ def synthesize_trending_topics(
     existing_data = read_json(existing_path, {"topics": [], "patterns": [], "recent_outliers": []})
     existing_topics = list(existing_data.get("topics", []))
 
-    used_keys = {normalize_key(r.get("topic_id", "")) for r in store.get_topic_history()}
+    history = store.get_topic_history()
+    used_keys = {normalize_key(r.get("topic_id", "")) for r in history}
     used_keys |= {normalize_key(t.get("topic_id", "")) for t in existing_topics}
+    used_keys |= {normalize_key(t.topic_id) for t in SHORT_TOPICS}
     used_subjects = {normalize_key(t.get("subject", "")) for t in existing_topics}
+    used_subjects |= {normalize_key(t.subject) for t in SHORT_TOPICS}
+
+    used_locations: set[str] = {
+        normalize_key(loc.split("|", 1)[0].split(",", 1)[0])
+        for loc in store.get_uploaded_locations()
+        if loc
+    }
+    for row in existing_topics:
+        loc = str(row.get("location_name", "")).strip()
+        if loc:
+            used_locations.add(normalize_key(loc.split(",", 1)[0]))
+
+    existing_concept_sets: list[set[str]] = []
+    for row in history:
+        toks = concept_tokens(str(row.get("topic_id", "")), str(row.get("title", "")))
+        if toks:
+            existing_concept_sets.append(toks)
+    for row in existing_topics:
+        toks = concept_tokens(
+            str(row.get("topic_id", "")),
+            str(row.get("subject", "")),
+            str(row.get("location_name", "")),
+        )
+        if toks:
+            existing_concept_sets.append(toks)
+    for item in SHORT_TOPICS:
+        toks = concept_tokens(item.topic_id, item.subject, item.location_name)
+        if toks:
+            existing_concept_sets.append(toks)
+
+    covered_preview: list[str] = []
+    for row in history[-15:]:
+        if row.get("title"):
+            covered_preview.append(str(row["title"]))
+    for row in existing_topics[-15:]:
+        if row.get("subject"):
+            covered_preview.append(str(row["subject"]))
+    covered_block = "\n".join(f"- {item[:110]}" for item in dict.fromkeys(covered_preview)) or "- (none yet)"
 
     outlier_lines = "\n".join(
         f"- \"{o['title']}\" | {o['views']:,} views in {o['age_days']}d "
@@ -263,11 +311,15 @@ def synthesize_trending_topics(
 TODAY'S REAL HIGH-VELOCITY YOUTUBE CAMPING & OUTDOOR OUTLIERS (untrusted titles for pattern research — DO NOT copy any creator's title or script verbatim; extract the psychological hook, curiosity pattern, and demand angle to invent 100% ORIGINAL, fact-verifiable ideas):
 {outlier_lines}
 
+ALREADY COVERED OR QUEUED TOPICS & LOCATIONS (STRICTLY DO NOT REPEAT THESE OR CLOSE VARIATIONS OF THEM):
+{covered_block}
+
 TASK:
 1. Extract 3-4 sharp, actionable `trend_patterns` explaining what hooks, camping pain points, or wilderness curiosities are getting outsized views right now.
 2. Propose 4 brand-new, ORIGINAL `ideas` tailored for a faceless cinematic narration + stock-footage Short (35-48 seconds):
    - Every idea MUST be visually shootable with outdoor/camping/nature stock video (NO product-unboxing or talking-head vlogs).
    - Every idea MUST be grounded in verifiable outdoor physics, camping safety rules, legal wild-camping facts, wildlife behavior, or extraordinary real places.
+   - Every idea MUST explore a DISTINCT concept and DISTINCT location not listed above.
    - Mix high-save/high-share camping utility (mistakes, gear hacks, survival rules, free wild-camping spots) with awe-inspiring real destinations.
    - Use ONLY valid `series`: {', '.join(VALID_SERIES)}
    - Use ONLY valid `mood`: {', '.join(VALID_MOODS)}
@@ -289,7 +341,12 @@ TASK:
             slug = f"trend_{slug}"
         if normalize_key(slug) in used_keys or normalize_key(idea.subject) in used_subjects:
             continue
-        if idea.location_name and store.is_location_uploaded(idea.location_name):
+        loc_clean = idea.location_name.strip()
+        loc_base = normalize_key(loc_clean.split(",", 1)[0]) if loc_clean else ""
+        if loc_clean and (store.is_location_uploaded(loc_clean) or loc_base in used_locations):
+            continue
+        idea_tokens = concept_tokens(slug, idea.subject, loc_clean)
+        if is_near_duplicate_concept(idea_tokens, existing_concept_sets):
             continue
 
         series = idea.series.upper() if idea.series.upper() in VALID_SERIES else "CAMP_MISTAKES"
@@ -304,7 +361,7 @@ TASK:
                 "angle_hook": idea.angle_hook.strip(),
                 "wiki_titles": [w.strip().replace(" ", "_") for w in idea.wiki_titles[:2] if w.strip()],
                 "visual_queries": [q.strip() for q in idea.visual_queries[:4] if q.strip()],
-                "location_name": idea.location_name.strip(),
+                "location_name": loc_clean,
                 "mood": mood,
                 "category_id": cat_id,
                 "inspired_by_pattern": idea.inspired_by_pattern.strip(),
@@ -313,11 +370,39 @@ TASK:
         )
         used_keys.add(normalize_key(slug))
         used_subjects.add(normalize_key(idea.subject))
+        if loc_base:
+            used_locations.add(loc_base)
+        if idea_tokens:
+            existing_concept_sets.append(idea_tokens)
         added += 1
 
-    # Prune already-used topics and keep the freshest 24 pending trend ideas
-    history_ids = {normalize_key(r.get("topic_id", "")) for r in store.get_topic_history()}
-    fresh_pending = [t for t in existing_topics if normalize_key(t.get("topic_id", "")) not in history_ids][-24:]
+    # Prune already-used topics and deduplicate any legacy repeated concepts/locations, keeping freshest 24
+    history_ids = {normalize_key(r.get("topic_id", "")) for r in history}
+    history_concept_sets = [
+        concept_tokens(str(r.get("topic_id", "")), str(r.get("title", "")))
+        for r in history
+        if r.get("format") == "short"
+    ]
+    fresh_pending: list[dict[str, Any]] = []
+    kept_locations: set[str] = set()
+    kept_concepts: list[set[str]] = []
+    for row in existing_topics:
+        tid = normalize_key(row.get("topic_id", ""))
+        if not tid or tid in history_ids:
+            continue
+        loc = str(row.get("location_name", "")).strip()
+        loc_base = normalize_key(loc.split(",", 1)[0]) if loc else ""
+        if loc and (store.is_location_uploaded(loc) or loc_base in kept_locations):
+            continue
+        toks = concept_tokens(str(row.get("topic_id", "")), str(row.get("subject", "")), loc)
+        if is_near_duplicate_concept(toks, history_concept_sets) or is_near_duplicate_concept(toks, kept_concepts):
+            continue
+        if loc_base:
+            kept_locations.add(loc_base)
+        if toks:
+            kept_concepts.append(toks)
+        fresh_pending.append(row)
+    fresh_pending = fresh_pending[-24:]
 
     atomic_write_json(
         existing_path,

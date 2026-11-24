@@ -1,7 +1,8 @@
-"""Multi-provider stock video engine (Pexels, Pixabay, Wikimedia Commons, Coverr) with FFprobe QC."""
+"""Multi-provider stock video engine (Pexels, Pixabay, Wikimedia Commons) with FFprobe QC."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
@@ -312,9 +313,10 @@ def search_wikimedia_commons(
                 continue
             seen.add(title)
             author = re.sub(r"<[^>]+>", "", str(meta.get("Artist", {}).get("value", "Wikimedia contributor"))).strip()[:120]
+            title_digest = hashlib.sha256(title.encode("utf-8")).hexdigest()[:12]
             assets.append(
                 MediaAsset(
-                    asset_key=f"wmc_{abs(hash(title)) % 10**10}",
+                    asset_key=f"wmc_{title_digest}",
                     provider="Wikimedia Commons",
                     asset_id=title,
                     download_url=url,
