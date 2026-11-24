@@ -25,7 +25,7 @@ from .config import (
     SHORTS_UTC_SLOTS,
     SUBTITLE_LANGUAGES,
 )
-from .content_engine import translate_subtitles_and_metadata
+from .content_engine import translate_metadata_only, translate_subtitles_and_metadata
 from .state_store import StateStore, normalize_key
 from .subtitle_engine import write_srt
 
@@ -426,17 +426,31 @@ def enqueue_video_for_post_processing(
     """Queue a newly uploaded video for quota-safe multi-language captions, localizations, and delayed comment."""
     queue = store.get_subtitle_queue()
     videos = queue.setdefault("videos", {})
-    videos[video_id] = {
-        "title": title,
-        "description": description[:2500],
-        "cues": [[round(s, 3), round(e, 3), t] for s, e, t in cues],
-        "done_langs": [],
-        "localized_langs": [],
-        "pinned_comment": pinned_comment,
-        "comment_posted": bool(comment_posted),
-        "publish_at": publish_at or "",
-        "queued_at": datetime.now(timezone.utc).isoformat(),
-    }
+    existing = videos.get(video_id)
+    if isinstance(existing, dict):
+        # Preserve prior localization/caption/comment progress if the video was already queued
+        existing["title"] = title or existing.get("title", "")
+        existing["description"] = (description or existing.get("description", ""))[:4500]
+        if cues and not existing.get("cues"):
+            existing["cues"] = [[round(s, 3), round(e, 3), t] for s, e, t in cues]
+        if pinned_comment and not existing.get("pinned_comment"):
+            existing["pinned_comment"] = pinned_comment
+        if comment_posted:
+            existing["comment_posted"] = True
+        if publish_at and not existing.get("publish_at"):
+            existing["publish_at"] = publish_at
+    else:
+        videos[video_id] = {
+            "title": title,
+            "description": description[:4500],
+            "cues": [[round(s, 3), round(e, 3), t] for s, e, t in cues],
+            "done_langs": [],
+            "localized_langs": [],
+            "pinned_comment": pinned_comment,
+            "comment_posted": bool(comment_posted),
+            "publish_at": publish_at or "",
+            "queued_at": datetime.now(timezone.utc).isoformat(),
+        }
     # Keep recent 60 videos in queue to keep Git state light
     if len(videos) > 60:
         oldest = sorted(videos.items(), key=lambda kv: kv[1].get("queued_at", ""))[: len(videos) - 60]
@@ -452,10 +466,13 @@ def process_subtitle_queue(
     work_dir: Path,
     *,
     daily_budget: int = DAILY_LANGUAGE_QUOTA_BUDGET,
+    max_captions: int | None = None,
+    now_utc: datetime | None = None,
 ) -> dict[str, int]:
-    """Upload captions + translated localizations + pending starter comments within a strict daily quota cap."""
+    """Post delayed comments, upload captions tier-by-tier without starvation, and apply cheap 50-unit localizations."""
     queue = store.get_subtitle_queue()
-    today = datetime.now(timezone.utc).date().isoformat()
+    now = (now_utc or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    today = now.date().isoformat()
     quota_map = queue.setdefault("quota", {})
     used_today = int(quota_map.get(today, 0) or 0)
     # Prune old dates from quota ledger
@@ -468,47 +485,58 @@ def process_subtitle_queue(
     comments_posted = 0
     srt_dir = work_dir / "srt_upload"
     srt_dir.mkdir(parents=True, exist_ok=True)
-    now = datetime.now(timezone.utc)
 
-    # Newest videos first so fresh uploads immediately get English & top global subtitles
-    ordered = sorted(videos.items(), key=lambda kv: kv[1].get("queued_at", ""), reverse=True)
+    ordered_newest = sorted(videos.items(), key=lambda kv: kv[1].get("queued_at", ""), reverse=True)
+    ordered_oldest = list(reversed(ordered_newest))
 
-    for video_id, entry in ordered:
-        # 1. Post delayed starter engagement comment once a scheduled video has gone public
-        if not entry.get("comment_posted") and entry.get("pinned_comment"):
-            pub_raw = str(entry.get("publish_at", "")).strip()
-            ready_for_comment = True
-            if pub_raw:
-                try:
-                    pub_dt = datetime.fromisoformat(pub_raw.replace("Z", "+00:00"))
-                    ready_for_comment = now >= pub_dt + timedelta(minutes=2)
-                except ValueError:
-                    ready_for_comment = True
-            if ready_for_comment and post_engagement_comment(youtube, video_id, entry["pinned_comment"]):
-                entry["comment_posted"] = True
-                comments_posted += 1
-
-        # 2. Multi-language captions & title/description localizations within quota budget
-        done_langs = set(entry.get("done_langs") or [])
-        localized_langs = set(entry.get("localized_langs") or [])
-        raw_cues = entry.get("cues") or []
-        if not raw_cues:
+    # PASS 1: Delayed starter engagement comments run across ALL queued videos independently of caption quota!
+    for video_id, entry in ordered_newest:
+        if entry.get("comment_posted") or not entry.get("pinned_comment"):
             continue
-        cues = [(float(c[0]), float(c[1]), str(c[2])) for c in raw_cues]
+        pub_raw = str(entry.get("publish_at", "")).strip()
+        ready_for_comment = True
+        if pub_raw:
+            try:
+                pub_dt = datetime.fromisoformat(pub_raw.replace("Z", "+00:00"))
+                ready_for_comment = now >= pub_dt + timedelta(minutes=2)
+            except ValueError:
+                ready_for_comment = True
+        if ready_for_comment and post_engagement_comment(youtube, video_id, entry["pinned_comment"]):
+            entry["comment_posted"] = True
+            comments_posted += 1
 
-        pending_localizations: dict[str, dict[str, str]] = {}
-        for lang_code, lang_name in SUBTITLE_LANGUAGES.items():
-            if lang_code in done_langs:
-                continue
+    # PASS 2: Tiered breadth-first caption uploads so every video gets English first and older videos never starve!
+    pending_loc_by_video: dict[str, dict[str, dict[str, str]]] = {}
+    caption_quota_blocked = False
+    for lang_code, lang_name in SUBTITLE_LANGUAGES.items():
+        if caption_quota_blocked:
+            break
+        if used_today + CAPTION_INSERT_QUOTA_COST > daily_budget:
+            break
+        if max_captions is not None and captions_uploaded >= max_captions:
+            break
+        if lang_code != "en" and not creds.gemini_api_key:
+            continue
+
+        # Newest-first for English (instant CC on fresh uploads); oldest-incomplete-first for non-English (fair backfill)
+        tier_order = ordered_newest if lang_code == "en" else ordered_oldest
+        for video_id, entry in tier_order:
             if used_today + CAPTION_INSERT_QUOTA_COST > daily_budget:
                 break
+            if max_captions is not None and captions_uploaded >= max_captions:
+                break
+            done_langs = set(entry.get("done_langs") or [])
+            if lang_code in done_langs:
+                continue
+            raw_cues = entry.get("cues") or []
+            if not raw_cues:
+                continue
+            cues = [(float(c[0]), float(c[1]), str(c[2])) for c in raw_cues]
 
             srt_path = srt_dir / f"{video_id}_{lang_code}.srt"
             if lang_code == "en":
                 write_srt(cues, srt_path)
             else:
-                if not creds.gemini_api_key:
-                    continue
                 try:
                     translated = translate_subtitles_and_metadata(
                         title=entry["title"],
@@ -521,8 +549,9 @@ def process_subtitle_queue(
                         (s, e, new_t) for (s, e, _), new_t in zip(cues, translated.translated_lines)
                     ]
                     write_srt(trans_cues, srt_path)
+                    localized_langs = set(entry.get("localized_langs") or [])
                     if lang_code not in localized_langs:
-                        pending_localizations[lang_code] = {
+                        pending_loc_by_video.setdefault(video_id, {})[lang_code] = {
                             "title": translated.localized_title,
                             "description": translated.localized_description,
                         }
@@ -545,46 +574,78 @@ def process_subtitle_queue(
                     media_body=media,
                 ).execute()
                 done_langs.add(lang_code)
+                entry["done_langs"] = sorted(done_langs)
                 used_today += CAPTION_INSERT_QUOTA_COST
                 captions_uploaded += 1
                 print(f"[I18N] Uploaded {lang_code} caption for {video_id} (daily quota used: {used_today}/{daily_budget})", flush=True)
             except HttpError as err:
                 status = getattr(err.resp, "status", 0)
                 if status == 409:
-                    # Caption track already exists
                     done_langs.add(lang_code)
+                    entry["done_langs"] = sorted(done_langs)
                 elif status in {403, 429}:
                     print(f"[I18N] Quota/permission stop on caption upload (HTTP {status})", flush=True)
                     used_today = daily_budget
+                    caption_quota_blocked = True
                     break
                 else:
                     print(f"[I18N] Caption upload error ({video_id}/{lang_code}): HTTP {status}", flush=True)
 
-        # Apply localized titles & descriptions in a single videos.update call (only 50 units!)
-        if pending_localizations and used_today + LOCALIZATION_UPDATE_QUOTA_COST <= daily_budget:
-            try:
-                vid_resp = youtube.videos().list(part="snippet,localizations", id=video_id).execute()
-                items = vid_resp.get("items") or []
-                if items:
-                    existing_loc = dict(items[0].get("localizations") or {})
-                    existing_loc.update(pending_localizations)
-                    snippet = items[0].get("snippet", {})
-                    snippet.setdefault("defaultLanguage", "en")
-                    youtube.videos().update(
-                        part="snippet,localizations",
-                        body={"id": video_id, "snippet": snippet, "localizations": existing_loc},
-                    ).execute()
-                    localized_langs.update(pending_localizations.keys())
-                    used_today += LOCALIZATION_UPDATE_QUOTA_COST
-                    localizations_updated += len(pending_localizations)
-                    print(f"[I18N] Updated localizations {sorted(pending_localizations)} for {video_id}", flush=True)
-            except HttpError as err:
-                print(f"[I18N] Localization update skipped for {video_id} (HTTP {getattr(err.resp, 'status', '?')})", flush=True)
-
-        entry["done_langs"] = sorted(done_langs)
-        entry["localized_langs"] = sorted(localized_langs)
-        if used_today + CAPTION_INSERT_QUOTA_COST > daily_budget:
+    # PASS 3: Cheap 50-unit title & description localizations (apply translations from Pass 2 + backfill metadata-only!)
+    non_en_langs = [code for code in SUBTITLE_LANGUAGES if code != "en"]
+    localized_videos = 0
+    for video_id, entry in ordered_newest:
+        if used_today + LOCALIZATION_UPDATE_QUOTA_COST > daily_budget:
             break
+        if max_captions is not None and localized_videos >= max_captions and video_id not in pending_loc_by_video:
+            continue
+        localized_langs = set(entry.get("localized_langs") or [])
+        pending_for_vid = dict(pending_loc_by_video.get(video_id) or {})
+
+        # Fill remaining missing title/description languages cheaply (1 videos.update = 50 units for ALL langs!)
+        missing_meta = [lang for lang in non_en_langs if lang not in localized_langs and lang not in pending_for_vid]
+        if missing_meta and creds.gemini_api_key:
+            for lang_code in missing_meta:
+                try:
+                    meta_t = translate_metadata_only(
+                        title=entry["title"],
+                        description=entry["description"],
+                        target_lang=lang_code,
+                        api_key=creds.gemini_api_key,
+                    )
+                    pending_for_vid[lang_code] = {
+                        "title": meta_t.localized_title,
+                        "description": meta_t.localized_description,
+                    }
+                except Exception as err:
+                    print(f"[I18N] Metadata translation failed ({video_id} -> {lang_code}): {err}", flush=True)
+
+        if not pending_for_vid:
+            continue
+
+        try:
+            vid_resp = youtube.videos().list(part="snippet,localizations", id=video_id).execute()
+            items = vid_resp.get("items") or []
+            if items:
+                existing_loc = dict(items[0].get("localizations") or {})
+                existing_loc.update(pending_for_vid)
+                snippet = items[0].get("snippet", {})
+                snippet.setdefault("defaultLanguage", "en")
+                youtube.videos().update(
+                    part="snippet,localizations",
+                    body={"id": video_id, "snippet": snippet, "localizations": existing_loc},
+                ).execute()
+                localized_langs.update(pending_for_vid.keys())
+                entry["localized_langs"] = sorted(localized_langs)
+                used_today += LOCALIZATION_UPDATE_QUOTA_COST
+                localizations_updated += len(pending_for_vid)
+                localized_videos += 1
+                print(f"[I18N] Updated localizations {sorted(pending_for_vid)} for {video_id}", flush=True)
+        except HttpError as err:
+            status = getattr(err.resp, "status", 0)
+            print(f"[I18N] Localization update skipped for {video_id} (HTTP {status or '?'})", flush=True)
+            if status in {403, 429}:
+                break
 
     quota_map[today] = used_today
     store.save_subtitle_queue(queue)

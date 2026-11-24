@@ -153,7 +153,7 @@ ScaledBorderAndShadow: yes
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Karaoke,{font_family},84,&H00FFFFFF,&H003BD4FF,&H000A0A0A,&H96000000,-1,0,0,0,100,100,1,0,1,6,3,2,64,64,475,1
 Style: TopPill,{font_family},36,&H003BD4FF,&H00FFFFFF,&H55101418,&H00000000,-1,0,0,0,100,100,2,0,3,16,0,8,60,60,145,1
-Style: HookBanner,{font_family},108,&H003BD4FF,&H00FFFFFF,&H00080A0F,&HA000000,-1,0,0,0,100,100,2,0,1,9,4,8,56,56,280,1
+Style: HookBanner,{font_family},108,&H003BD4FF,&H00FFFFFF,&H00080A0F,&HA0000000,-1,0,0,0,100,100,2,0,1,9,4,8,56,56,280,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

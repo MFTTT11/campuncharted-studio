@@ -92,8 +92,19 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
     print(f"[SHORT] Grounded reference sources: {len(sources)}", flush=True)
 
     insights = store.get_channel_insights()
+    known_hashes = store.get_content_hashes()
     script = generate_short_script(topic, sources, api_key=creds.gemini_api_key, insights=insights)
     digest = content_hash([topic.topic_id, script.title] + [b.narration for b in script.beats])
+    if digest in known_hashes:
+        print(f"[SHORT] Script content hash collided with prior upload; regenerating with fresh angle...", flush=True)
+        script = generate_short_script(
+            topic,
+            sources,
+            api_key=creds.gemini_api_key,
+            insights=insights,
+            freshness_note="Use a completely different hook, phrasing, and concrete fact angle than previous scripts.",
+        )
+        digest = content_hash([topic.topic_id, script.title] + [b.narration for b in script.beats])
     print(
         f"[SHORT] Script ready: '{script.title}' ({len(script.beats)} beats, "
         f"{sum(len(b.narration.split()) for b in script.beats)} words)",
@@ -217,11 +228,12 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
     print(f"[YOUTUBE] Channel lock verified: {channel_info['title']} ({channel_info['channel_id']})", flush=True)
 
     dup_id = check_remote_duplicate(youtube, channel_info["uploads_playlist"], script.title)
+    is_duplicate = bool(dup_id)
     if dup_id:
-        print(f"[YOUTUBE] Duplicate already uploaded ({dup_id}); recording state without re-uploading.", flush=True)
+        print(f"[YOUTUBE] Duplicate already uploaded ({dup_id}); preserving existing state without re-uploading.", flush=True)
         video_id = dup_id
         publish_at = None
-        comment_posted = False
+        comment_posted = True
     else:
         publish_at = reserve_publish_slot(store, format_type="short", publish_now=args.publish_now)
         video_id = upload_video_resumable(
@@ -240,32 +252,35 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
             comment_posted = post_engagement_comment(youtube, video_id, script.pinned_comment)
         record_reserved_slot(store, publish_at=publish_at, format_type="short", video_id=video_id, title=script.title)
 
-    # Persist durable state
-    store.record_topic(
-        topic_id=topic.topic_id,
-        series=topic.series,
-        title=script.title,
-        video_id=video_id,
-        duration_seconds=qc["duration"],
-        format_type="short",
-    )
+    # Persist durable state (avoid duplicating topic history or overwriting subtitle progress on remote duplicate)
+    already_recorded = any(str(row.get("video_id", "")) == video_id for row in store.get_topic_history())
+    if not already_recorded:
+        store.record_topic(
+            topic_id=topic.topic_id,
+            series=topic.series,
+            title=script.title,
+            video_id=video_id,
+            duration_seconds=qc["duration"],
+            format_type="short",
+        )
     if topic.location_name:
         store.record_uploaded_location(topic.location_name)
     store.record_used_media_ids([c.asset_key for c in clips])
     store.record_content_hash(digest)
-    enqueue_video_for_post_processing(
-        store,
-        video_id=video_id,
-        title=script.title,
-        description=description,
-        cues=srt_cues,
-        pinned_comment=script.pinned_comment,
-        comment_posted=comment_posted,
-        publish_at=publish_at,
-    )
+    if not is_duplicate:
+        enqueue_video_for_post_processing(
+            store,
+            video_id=video_id,
+            title=script.title,
+            description=description,
+            cues=srt_cues,
+            pinned_comment=script.pinned_comment,
+            comment_posted=comment_posted,
+            publish_at=publish_at,
+        )
 
     if not args.skip_i18n:
-        i18n_stats = process_subtitle_queue(youtube, store, creds, run_work)
+        i18n_stats = process_subtitle_queue(youtube, store, creds, run_work, max_captions=1)
         print(f"[I18N] Subtitle/localization pass: {i18n_stats}", flush=True)
 
     manifest["video_id"] = video_id
@@ -291,8 +306,19 @@ def cmd_produce_doc(args: argparse.Namespace, paths: StudioPaths, creds: ApiCred
     print(f"[DOC] Grounded reference sources: {len(sources)}", flush=True)
 
     insights = store.get_channel_insights()
+    known_hashes = store.get_content_hashes()
     script = generate_documentary_script(topic, sources, api_key=creds.gemini_api_key, insights=insights)
     digest = content_hash([topic.slug, script.title] + [c.narration for c in script.chapters])
+    if digest in known_hashes:
+        print(f"[DOC] Documentary content hash collided with prior upload; regenerating with fresh angle...", flush=True)
+        script = generate_documentary_script(
+            topic,
+            sources,
+            api_key=creds.gemini_api_key,
+            insights=insights,
+            freshness_note="Approach this destination from a completely fresh seasonal, ecological, and historical narrative angle.",
+        )
+        digest = content_hash([topic.slug, script.title] + [c.narration for c in script.chapters])
     print(f"[DOC] Script ready: '{script.title}' ({len(script.chapters)} chapters)", flush=True)
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -420,10 +446,12 @@ def cmd_produce_doc(args: argparse.Namespace, paths: StudioPaths, creds: ApiCred
     print(f"[YOUTUBE] Channel lock verified: {channel_info['title']} ({channel_info['channel_id']})", flush=True)
 
     dup_id = check_remote_duplicate(youtube, channel_info["uploads_playlist"], script.title)
+    is_duplicate = bool(dup_id)
     if dup_id:
+        print(f"[YOUTUBE] Duplicate documentary already uploaded ({dup_id}); preserving existing state without re-uploading.", flush=True)
         video_id = dup_id
         publish_at = None
-        comment_posted = False
+        comment_posted = True
     else:
         publish_at = reserve_publish_slot(store, format_type="documentary", publish_now=args.publish_now)
         video_id = upload_video_resumable(
@@ -444,29 +472,32 @@ def cmd_produce_doc(args: argparse.Namespace, paths: StudioPaths, creds: ApiCred
         record_reserved_slot(store, publish_at=publish_at, format_type="documentary", video_id=video_id, title=script.title)
 
     store.record_documentary(topic.place, video_id, script.title, qc["duration"])
-    store.record_topic(
-        topic_id=f"doc_{topic.slug}",
-        series="DOCUMENTARY",
-        title=script.title,
-        video_id=video_id,
-        duration_seconds=qc["duration"],
-        format_type="documentary",
-    )
+    already_recorded = any(str(row.get("video_id", "")) == video_id for row in store.get_topic_history())
+    if not already_recorded:
+        store.record_topic(
+            topic_id=f"doc_{topic.slug}",
+            series="DOCUMENTARY",
+            title=script.title,
+            video_id=video_id,
+            duration_seconds=qc["duration"],
+            format_type="documentary",
+        )
     store.record_used_media_ids([c.asset_key for c in clips])
     store.record_content_hash(digest)
-    enqueue_video_for_post_processing(
-        store,
-        video_id=video_id,
-        title=script.title,
-        description=description,
-        cues=srt_cues,
-        pinned_comment=script.pinned_comment,
-        comment_posted=comment_posted,
-        publish_at=publish_at,
-    )
+    if not is_duplicate:
+        enqueue_video_for_post_processing(
+            store,
+            video_id=video_id,
+            title=script.title,
+            description=description,
+            cues=srt_cues,
+            pinned_comment=script.pinned_comment,
+            comment_posted=comment_posted,
+            publish_at=publish_at,
+        )
 
     if not args.skip_i18n:
-        i18n_stats = process_subtitle_queue(youtube, store, creds, run_work)
+        i18n_stats = process_subtitle_queue(youtube, store, creds, run_work, max_captions=2)
         print(f"[I18N] Subtitle/localization pass: {i18n_stats}", flush=True)
 
     manifest["video_id"] = video_id

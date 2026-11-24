@@ -281,10 +281,13 @@ def _render_single_cut(
 
     cmd = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error"]
     if need_loop:
-        cmd.extend(["-stream_loop", "-1"])
+        safe_loop_start = min(cut.source_start, max(0.0, cut.asset.duration - 1.0))
+        cmd.extend(["-stream_loop", "-1", "-i", str(src)])
+        if safe_loop_start > 0.05:
+            cmd.extend(["-ss", f"{safe_loop_start:.3f}"])
+        cmd.extend(["-t", f"{dur:.3f}"])
     else:
-        cmd.extend(["-ss", f"{cut.source_start:.3f}"])
-    cmd.extend(["-i", str(src), "-t", f"{dur:.3f}"])
+        cmd.extend(["-ss", f"{cut.source_start:.3f}", "-i", str(src), "-t", f"{dur:.3f}"])
 
     if use_blurred_frame:
         # Tasteful ambient blurred fill + sharp centered foreground lifted above Shorts subtitles

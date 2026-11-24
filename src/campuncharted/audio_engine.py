@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import math
 import subprocess
@@ -154,8 +155,9 @@ def build_word_timings(
     word_events = [b for b in boundaries if b.get("type") == "WordBoundary" and b.get("text", "").strip()]
     timings: list[WordTiming] = []
     if word_events:
+        max_start = max(0.0, clip_duration - 0.08)
         for ev in word_events:
-            s = max(0.0, ev["offset_sec"] - lead_shift)
+            s = min(max_start, max(0.0, ev["offset_sec"] - lead_shift))
             d = max(0.08, ev["duration_sec"])
             e = min(clip_duration, s + d)
             if e <= s:
@@ -290,7 +292,8 @@ def generate_nature_soundscape(
     """
     out_wav.parent.mkdir(parents=True, exist_ok=True)
     n = max(sample_rate, int(sample_rate * (duration_seconds + 0.5)))
-    rng = np.random.default_rng(abs(hash((mood, int(duration_seconds)))) % (2**32))
+    seed_hex = hashlib.sha256(f"{mood}:{int(duration_seconds)}".encode("utf-8")).hexdigest()[:8]
+    rng = np.random.default_rng(int(seed_hex, 16))
     t = np.linspace(0.0, n / sample_rate, n, endpoint=False, dtype=np.float32)
 
     # Smooth pink/brown noise foundation via FFT spectral shaping (fast & clean in numpy)

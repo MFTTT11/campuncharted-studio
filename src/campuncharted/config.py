@@ -115,7 +115,6 @@ class ApiCredentials:
     gemini_api_key: str = field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", "").strip())
     pexels_api_key: str = field(default_factory=lambda: os.environ.get("PEXELS_API_KEY", "").strip())
     pixabay_api_key: str = field(default_factory=lambda: os.environ.get("PIXABAY_API_KEY", "").strip())
-    coverr_api_key: str = field(default_factory=lambda: os.environ.get("COVERR_API_KEY", "").strip())
     youtube_token_json: str = field(default_factory=lambda: os.environ.get("YOUTUBE_TOKEN_JSON", "").strip())
     youtube_client_secret_json: str = field(
         default_factory=lambda: os.environ.get("YOUTUBE_CLIENT_SECRET_JSON", "").strip()

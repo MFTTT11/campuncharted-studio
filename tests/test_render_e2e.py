@@ -348,3 +348,60 @@ def test_verify_rendered_video_rejects_black_and_allows_isolated_dark_cut(tmp_pa
     )
     assert qc["video_codec"] == "h264"
     assert len(qc["frame_stats"]) == 5
+
+
+def test_render_single_cut_looped_clip_skips_black_fade_in(tmp_path: Path) -> None:
+    from campuncharted.video_engine import VisualCut, _probe_frame_metrics, _render_single_cut
+
+    # Build a 4.0s clip whose opening 1.0s is pure black and remaining 3.0s is bright testsrc2
+    fade_clip = tmp_path / "black_intro_4s.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:size=1280x720:rate=30:duration=1.0",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=size=1280x720:rate=30:duration=3.0",
+            "-filter_complex",
+            "[0:v][1:v]concat=n=2:v=1:a=0,format=yuv420p[v]",
+            "-map",
+            "[v]",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            str(fade_clip),
+        ],
+        check=True,
+        timeout=60,
+    )
+    asset = MediaAsset(
+        asset_key="test_black_intro",
+        provider="Synthetic",
+        asset_id="black_intro",
+        download_url="",
+        page_url="",
+        title="black_intro",
+        author="Test",
+        license_name="CC0",
+        width=1280,
+        height=720,
+        duration=4.0,
+        local_path=fade_clip,
+    )
+    # duration 6.0s > asset.duration 4.0s -> forces need_loop=True while requesting source_start=1.2s
+    cut = VisualCut(index=0, asset=asset, source_start=1.2, duration=6.0, motion_mode=0)
+    out_seg = _render_single_cut(cut, tmp_path / "looped_seg.mp4", width=1280, height=720)
+    metrics = _probe_frame_metrics(out_seg, 0.25, tmp_path / "frame_start.png")
+    assert metrics is not None
+    brightness, contrast, _ = metrics
+    assert brightness > 30.0 and contrast > 20.0
+
