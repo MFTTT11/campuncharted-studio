@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-11-24T07:35:16.763521+00:00",
+  "updated_at": "2026-11-24T19:41:48.868554+00:00",
   "quota": {
-    "2026-11-24": 400
+    "2026-11-24": 500
   },
   "processed": {
     "UgySm9RWfxiTyDUu0Wh4AaABAg": {
@@ -59,6 +59,20 @@
       "sentiment": "positive",
       "reply": "No way, you are so lucky to live in such a stunning spot! What is your absolute favorite trail around there? ⛰️",
       "at": "2026-11-24T07:35:16.763521+00:00"
+    },
+    "Ugycqmx64Jewcpu8Ehx4AaABAg": {
+      "video_id": "2d-t0tLRpq0",
+      "status": "REPLIED",
+      "sentiment": "story_or_debate",
+      "reply": "45°C is absolutely intense! Extreme heat like that really tests your limits. How did you manage to stay cool out there? ☀️",
+      "at": "2026-11-24T19:41:48.868554+00:00"
+    },
+    "UgzJGfHIh1PanzZm_3p4AaABAg": {
+      "video_id": "cW-B3Idgwko",
+      "status": "REPLIED",
+      "sentiment": "positive",
+      "reply": "Haha pack extra sunscreen for that one! Would you actually camp near a lava lake if you got the chance? 🔥",
+      "at": "2026-11-24T19:41:48.868554+00:00"
     }
   }
 }
