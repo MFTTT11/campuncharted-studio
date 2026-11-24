@@ -348,4 +348,77 @@ def test_trend_radar_outlier_scoring_and_topic_blending(tmp_path: Path) -> None:
     assert not picked_2.topic_id.startswith("trend_")
 
 
+def test_comment_engine_filters_spam_owner_and_replied_threads() -> None:
+    from campuncharted.comment_engine import (
+        filter_unreplied_viewer_threads,
+        is_obvious_spam,
+    )
+
+    assert is_obvious_spam("Check out my channel sub4sub https://spam.example")
+    assert is_obvious_spam("DM me on WhatsApp for crypto signals")
+    assert not is_obvious_spam("Great tip! Never knew pine resin burned in rain 🔥")
+    assert not is_obvious_spam("Harika video, kampa giderken mutlaka denerim!")
+
+    threads = [
+        # 1. Own channel starter comment -> MUST skip
+        {
+            "id": "th_own",
+            "snippet": {
+                "videoId": "vid1",
+                "topLevelComment": {
+                    "id": "c_own",
+                    "snippet": {
+                        "authorChannelId": {"value": EXPECTED_CHANNEL_ID},
+                        "authorDisplayName": "CampUncharted",
+                        "textOriginal": "Have you ever camped in rain?",
+                    },
+                },
+            },
+        },
+        # 2. Viewer comment already replied by owner -> MUST skip
+        {
+            "id": "th_done",
+            "snippet": {
+                "videoId": "vid1",
+                "topLevelComment": {
+                    "id": "c_done",
+                    "snippet": {
+                        "authorChannelId": {"value": "UC_VIEWER_1"},
+                        "authorDisplayName": "Alex",
+                        "textOriginal": "Love this!",
+                    },
+                },
+            },
+            "replies": {
+                "comments": [
+                    {"snippet": {"authorChannelId": {"value": EXPECTED_CHANNEL_ID}, "textOriginal": "Thanks Alex!"}}
+                ]
+            },
+        },
+        # 3. Fresh unreplied viewer comment -> MUST include
+        {
+            "id": "th_new",
+            "snippet": {
+                "videoId": "vid2",
+                "topLevelComment": {
+                    "id": "c_new",
+                    "snippet": {
+                        "authorChannelId": {"value": "UC_VIEWER_2"},
+                        "authorDisplayName": "Mert",
+                        "textOriginal": "Çam reçinesi gerçekten ıslakken bile yanıyor mu?",
+                    },
+                },
+            },
+        },
+    ]
+    pending = filter_unreplied_viewer_threads(
+        threads,
+        owner_channel_id=EXPECTED_CHANNEL_ID,
+        processed_thread_ids={"th_old"},
+    )
+    assert [p["thread_id"] for p in pending] == ["th_new"]
+    assert pending[0]["video_id"] == "vid2"
+
+
+
 

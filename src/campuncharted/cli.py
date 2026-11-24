@@ -515,6 +515,25 @@ def cmd_scan_trends(args: argparse.Namespace, paths: StudioPaths, creds: ApiCred
     return 0
 
 
+def cmd_engage_comments(args: argparse.Namespace, paths: StudioPaths, creds: ApiCredentials) -> int:
+    from .comment_engine import run_comment_engagement
+
+    paths.ensure_dirs()
+    store = StateStore(paths.state_dir)
+    youtube, _ = build_youtube_clients(creds, local_token_path=paths.repo_root / "token.json")
+    info = verify_channel_ownership(youtube, creds.expected_channel_id)
+    stats = run_comment_engagement(
+        youtube,
+        store,
+        api_key=creds.gemini_api_key,
+        owner_channel_id=info["channel_id"],
+        max_replies=args.max_replies,
+        dry_run=bool(args.dry_run),
+    )
+    print(f"[COMMENTS] Engagement complete: {json.dumps(stats, ensure_ascii=False)}", flush=True)
+    return 0
+
+
 def cmd_verify_auth(args: argparse.Namespace, paths: StudioPaths, creds: ApiCredentials) -> int:
     youtube, _ = build_youtube_clients(creds, local_token_path=paths.repo_root / "token.json")
     info = verify_channel_ownership(youtube, creds.expected_channel_id)
@@ -649,6 +668,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_tr = sub.add_parser("scan-trends", help="Scan live viral YouTube camping Shorts and synthesize fresh ideas")
     p_tr.add_argument("--days-back", type=int, default=21)
     p_tr.set_defaults(func=cmd_scan_trends)
+
+    p_com = sub.add_parser("engage-comments", help="Autonomously reply to genuine viewer comments across the channel")
+    p_com.add_argument("--dry-run", action="store_true", help="Classify and draft replies without posting to YouTube")
+    p_com.add_argument("--max-replies", type=int, default=8, help="Maximum replies to post in one run")
+    p_com.set_defaults(func=cmd_engage_comments)
 
     p_auth = sub.add_parser("verify-auth", help="Verify YouTube OAuth token & channel lock")
     p_auth.set_defaults(func=cmd_verify_auth)
