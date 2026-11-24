@@ -26,24 +26,30 @@ from .topic_catalog import SHORT_TOPICS
 # Rotating high-signal English camping & wilderness search queries (2 run per day = only ~202 YouTube quota units!)
 # Note: videoDuration='short' already filters to short-form videos, so crisp 2-word terms catch 10-15 viral outliers/day.
 TREND_SEARCH_QUERIES: tuple[str, ...] = (
-    "camping tips",
-    "wild camping",
-    "camping hacks",
-    "survival camping",
-    "solo camping",
-    "winter camping",
     "camping mistakes",
+    "survival hacks",
     "bushcraft fire",
-    "backpacking gear",
-    "hidden campsites",
+    "camping hacks",
+    "winter camping tips",
+    "wilderness survival",
+    "outdoor survival tips",
+    "camping safety",
+    "solo camping tips",
+    "backpacking hacks",
 )
 
 VALID_SERIES = (
     "CAMP_MISTAKES",
-    "WILD_STAYS",
     "GEAR_AND_HACKS",
     "EXTREME_WEATHER_NATURE",
+    "WILD_STAYS",
     "TURKEY_AND_EURASIA_HIDDEN",
+)
+
+CORE_VIRAL_SERIES = (
+    "CAMP_MISTAKES",
+    "GEAR_AND_HACKS",
+    "EXTREME_WEATHER_NATURE",
 )
 
 VALID_MOODS = (
@@ -306,7 +312,7 @@ def synthesize_trending_topics(
         for o in outliers[:12]
     )
 
-    prompt = f"""You are the Head of Growth & Viral Strategy for @CampUncharted (global English camping, wild-camping, backcountry safety, and extraordinary wilderness channel).
+    prompt = f"""You are the Head of Growth & Viral Strategy for @CampUncharted (high-retention global English camping mistakes, backcountry survival hacks, and extreme outdoor physics YouTube Shorts channel).
 
 TODAY'S REAL HIGH-VELOCITY YOUTUBE CAMPING & OUTDOOR OUTLIERS (untrusted titles for pattern research — DO NOT copy any creator's title or script verbatim; extract the psychological hook, curiosity pattern, and demand angle to invent 100% ORIGINAL, fact-verifiable ideas):
 {outlier_lines}
@@ -315,13 +321,13 @@ ALREADY COVERED OR QUEUED TOPICS & LOCATIONS (STRICTLY DO NOT REPEAT THESE OR CL
 {covered_block}
 
 TASK:
-1. Extract 3-4 sharp, actionable `trend_patterns` explaining what hooks, camping pain points, or wilderness curiosities are getting outsized views right now.
-2. Propose 4 brand-new, ORIGINAL `ideas` tailored for a faceless cinematic narration + stock-footage Short (35-48 seconds):
-   - Every idea MUST be visually shootable with outdoor/camping/nature stock video (NO product-unboxing or talking-head vlogs).
-   - Every idea MUST be grounded in verifiable outdoor physics, camping safety rules, legal wild-camping facts, wildlife behavior, or extraordinary real places.
-   - Every idea MUST explore a DISTINCT concept and DISTINCT location not listed above.
-   - Mix high-save/high-share camping utility (mistakes, gear hacks, survival rules, free wild-camping spots) with awe-inspiring real destinations.
-   - Use ONLY valid `series`: {', '.join(VALID_SERIES)}
+1. Extract 3-4 sharp, actionable `trend_patterns` explaining what hooks, camping pain points, or survival hacks are getting outsized views right now.
+2. Propose 4 brand-new, ORIGINAL `ideas` engineered for a fast 20-26 second faceless vertical Short with stock outdoor footage:
+   - Every idea MUST have immediate personal stakes or a surprising survival/gear physics payoff (NO slow geography history or encyclopedia place profiles!).
+   - Every idea MUST be visually shootable with crisp vertical outdoor/camping/nature stock video (NO product-unboxing or talking-head vlogs).
+   - Every idea MUST be grounded in verifiable outdoor physics, camping safety rules, fire/shelter craft, wildlife behavior, or extreme weather hazards.
+   - Every idea MUST explore a DISTINCT concept not listed above.
+   - Use ONLY core high-retention viral `series`: {', '.join(CORE_VIRAL_SERIES)}
    - Use ONLY valid `mood`: {', '.join(VALID_MOODS)}
    - Prefix every `topic_id` with `trend_` (lowercase snake_case).
 """

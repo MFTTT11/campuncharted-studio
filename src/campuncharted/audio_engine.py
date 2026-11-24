@@ -279,9 +279,10 @@ def generate_nature_soundscape(
     mood: str = "ALPINE_WIND",
     include_hook_swell: bool = True,
     loop_snappy: bool = False,
+    beat_timestamps: list[float] | None = None,
     sample_rate: int = 44100,
 ) -> Path:
-    """Generate a clean, pleasant, zero-dependency stereo nature soundscape bed.
+    """Generate a clean, pleasant, zero-dependency stereo nature soundscape bed with optional beat-synced SFX.
 
     Moods:
     - ALPINE_WIND: soft stereo mountain breeze + warm open fifth ambient pad
@@ -351,33 +352,85 @@ def generate_nature_soundscape(
             left[pos : pos + length] += burst * pan
             right[pos : pos + length] += burst * (1.0 - pan)
 
-    # Crisp subtle sub-impact + airy whoosh at t=0.0s (plus subtle climax accent at 62% on Shorts)
+    # Subtle cinematic momentum pulse (~108 BPM muted low pulse) exclusively for viral Shorts
+    if loop_snappy and duration_seconds >= 5.0:
+        step_sec = 60.0 / 108.0
+        pulse_t = step_sec
+        pulse_idx = 0
+        while pulse_t < duration_seconds - 0.25:
+            pos = int(pulse_t * sample_rate)
+            p_len = min(n - pos, int(sample_rate * 0.14))
+            if p_len > 100:
+                pt = np.linspace(0.0, p_len / sample_rate, p_len, dtype=np.float32)
+                base_hz = 74.0 if (pulse_idx % 2 == 0) else 62.0
+                thump = np.sin(2.0 * math.pi * (base_hz - 24.0 * pt) * pt) * np.exp(-pt * 24.0) * 0.13
+                left[pos : pos + p_len] += thump
+                right[pos : pos + p_len] += thump
+            pulse_t += step_sec
+            pulse_idx += 1
+
+    # Crisp sub-impact + airy whoosh at t=0.0s, beat-synced transition whooshes, and climax riser
     if include_hook_swell:
-        hit_len = min(n, int(sample_rate * 0.50))
+        hit_len = min(n, int(sample_rate * 0.48))
         ht = np.linspace(0.0, hit_len / sample_rate, hit_len, dtype=np.float32)
-        sub = np.sin(2.0 * math.pi * (92.0 - 42.0 * ht) * ht) * np.exp(-ht * 6.8) * 0.34
-        whoosh = left_noise[:hit_len] * np.sin(math.pi * ht / max(0.01, ht[-1])) * 0.22
+        sub = np.sin(2.0 * math.pi * (96.0 - 46.0 * ht) * ht) * np.exp(-ht * 7.2) * 0.36
+        whoosh = left_noise[:hit_len] * np.sin(math.pi * ht / max(0.01, ht[-1])) * 0.24
         left[:hit_len] += sub + whoosh
         right[:hit_len] += sub + whoosh
 
-        if duration_seconds >= 15.0:
-            twist_pos = int(sample_rate * duration_seconds * 0.62)
-            tw_len = min(n - twist_pos, int(sample_rate * 0.38))
+        # Add tactile airy transition whooshes synced to spoken beat cuts (keeps retention sharp every ~2-3s)
+        valid_beats = sorted(
+            ts for ts in (beat_timestamps or []) if 0.9 <= float(ts) <= max(0.9, duration_seconds - 0.6)
+        )
+        climax_ts = valid_beats[-2] if len(valid_beats) >= 3 else (duration_seconds * 0.62 if duration_seconds >= 12.0 else None)
+
+        for idx_b, ts in enumerate(valid_beats):
+            if climax_ts is not None and abs(ts - climax_ts) < 0.2:
+                continue
+            w_len = int(sample_rate * 0.16)
+            start_i = max(0, int((ts - 0.06) * sample_rate))
+            end_i = min(n, start_i + w_len)
+            actual = end_i - start_i
+            if actual > 120:
+                wt = np.linspace(0.0, actual / sample_rate, actual, dtype=np.float32)
+                env = np.maximum(0.0, np.sin(math.pi * wt / max(0.01, float(wt[-1])))) ** 1.4
+                pan_l = 0.65 if (idx_b % 2 == 0) else 0.35
+                sweep = left_noise[start_i:end_i] * env * 0.16
+                snap = np.sin(2.0 * math.pi * (140.0 - 65.0 * wt) * wt) * np.exp(-wt * 22.0) * 0.10
+                left[start_i:end_i] += sweep * pan_l + snap
+                right[start_i:end_i] += sweep * (1.0 - pan_l) + snap
+
+        # Climax/payoff tension riser into crisp hit right before the big reveal
+        if climax_ts is not None and climax_ts > 1.2:
+            riser_sec = 0.42
+            r_end = min(n, int(climax_ts * sample_rate))
+            r_start = max(0, r_end - int(riser_sec * sample_rate))
+            r_len = r_end - r_start
+            if r_len > 200:
+                rt = np.linspace(0.0, r_len / sample_rate, r_len, dtype=np.float32)
+                r_env = (rt / max(0.01, float(rt[-1]))) ** 2.0
+                riser_tone = np.sin(2.0 * math.pi * (180.0 + 360.0 * (rt / max(0.01, float(rt[-1])))) * rt) * r_env * 0.11
+                riser_air = left_noise[r_start:r_end] * r_env * 0.20
+                left[r_start:r_end] += riser_tone + riser_air
+                right[r_start:r_end] += riser_tone + riser_air
+
+            tw_pos = r_end
+            tw_len = min(n - tw_pos, int(sample_rate * 0.36))
             if tw_len > 200:
                 wt = np.linspace(0.0, tw_len / sample_rate, tw_len, dtype=np.float32)
-                accent = np.sin(2.0 * math.pi * (78.0 - 30.0 * wt) * wt) * np.exp(-wt * 7.5) * 0.24
-                left[twist_pos : twist_pos + tw_len] += accent
-                right[twist_pos : twist_pos + tw_len] += accent
+                accent = np.sin(2.0 * math.pi * (86.0 - 36.0 * wt) * wt) * np.exp(-wt * 7.8) * 0.28
+                left[tw_pos : tw_pos + tw_len] += accent
+                right[tw_pos : tw_pos + tw_len] += accent
 
-    # Snappy loop-friendly micro-fade for Shorts vs long cinematic fade for Documentaries
-    fade_in = min(n, int(sample_rate * (0.06 if loop_snappy else 0.30)))
-    fade_out = min(n, int(sample_rate * (0.08 if loop_snappy else 1.20)))
+    # Seamless loop-friendly micro-fade for Shorts vs long cinematic fade for Documentaries
+    fade_in = min(n, int(sample_rate * (0.04 if loop_snappy else 0.30)))
+    fade_out = min(n, int(sample_rate * (0.03 if loop_snappy else 1.20)))
     left[:fade_in] *= np.linspace(0.0, 1.0, fade_in, dtype=np.float32)
     right[:fade_in] *= np.linspace(0.0, 1.0, fade_in, dtype=np.float32)
     left[-fade_out:] *= np.linspace(1.0, 0.0, fade_out, dtype=np.float32)
     right[-fade_out:] *= np.linspace(1.0, 0.0, fade_out, dtype=np.float32)
 
-    stereo = np.stack([left, right], axis=1)
+    stereo = np.nan_to_num(np.stack([left, right], axis=1), nan=0.0, posinf=0.0, neginf=0.0)
     peak = float(np.max(np.abs(stereo))) or 1.0
     stereo = (stereo / peak) * 0.45
     pcm = np.clip(stereo * 32767.0, -32768, 32767).astype(np.int16)

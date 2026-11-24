@@ -19,6 +19,7 @@ from googleapiclient.http import MediaFileUpload
 
 from .config import (
     ApiCredentials,
+    DAILY_EN_CAPTION_RESERVE,
     DAILY_LANGUAGE_QUOTA_BUDGET,
     DOC_UTC_SLOTS,
     EXPECTED_CHANNEL_ID,
@@ -511,8 +512,10 @@ def process_subtitle_queue(
     for lang_code, lang_name in SUBTITLE_LANGUAGES.items():
         if caption_quota_blocked:
             break
-        if used_today + CAPTION_INSERT_QUOTA_COST > daily_budget:
-            break
+        # Keep DAILY_EN_CAPTION_RESERVE unspent during non-English backfill so fresh Shorts uploaded later today always get English CC!
+        lang_cap = daily_budget if lang_code == "en" else max(0, daily_budget - DAILY_EN_CAPTION_RESERVE)
+        if used_today + CAPTION_INSERT_QUOTA_COST > lang_cap:
+            continue
         if max_captions is not None and captions_uploaded >= max_captions:
             break
         if lang_code != "en" and not creds.gemini_api_key:
@@ -521,7 +524,7 @@ def process_subtitle_queue(
         # Newest-first for English (instant CC on fresh uploads); oldest-incomplete-first for non-English (fair backfill)
         tier_order = ordered_newest if lang_code == "en" else ordered_oldest
         for video_id, entry in tier_order:
-            if used_today + CAPTION_INSERT_QUOTA_COST > daily_budget:
+            if used_today + CAPTION_INSERT_QUOTA_COST > lang_cap:
                 break
             if max_captions is not None and captions_uploaded >= max_captions:
                 break

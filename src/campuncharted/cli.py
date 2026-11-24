@@ -42,7 +42,7 @@ from .content_engine import (
     generate_short_script,
 )
 from .fact_researcher import research_topic
-from .media_engine import fetch_clips_for_queries
+from .media_engine import fetch_beat_synced_clips, fetch_clips_for_queries
 from .state_store import StateStore, atomic_write_json, content_hash, normalize_key, read_json
 from .subtitle_engine import (
     beats_to_srt_cues,
@@ -127,23 +127,25 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
     )
     print(f"[SHORT] Narration synthesized: {audio_duration:.2f}s across {len(beats)} beats", flush=True)
 
-    # 2. Procedural stereo nature bed + snappy loop tail + broadcast ducking & -14 LUFS loudness
+    # 2. Procedural stereo nature bed + beat-synced whoosh/riser SFX + subtle momentum pulse + -14 LUFS loudness
+    beat_timestamps = [b.start for b in beats]
     ambience_wav = generate_nature_soundscape(
         run_work / "audio" / "ambience.wav",
         audio_duration + 0.2,
         mood=topic.mood,
         include_hook_swell=True,
         loop_snappy=True,
+        beat_timestamps=beat_timestamps,
     )
     mixed_audio = mix_narration_and_ambience(
         narration_wav,
         ambience_wav,
         run_work / "audio" / "mixed.m4a",
         duration_seconds=audio_duration,
-        ambience_volume=0.23,
+        ambience_volume=0.25,
     )
 
-    # 3. Karaoke ASS + 0.0-1.85s Hook Banner scroll-stopper + English SRT
+    # 3. Karaoke ASS (1-2 word bursts + alert highlights) + clean 0.0-1.35s Hook Banner + English SRT
     ass_path = generate_shorts_karaoke_ass(
         beats,
         run_work / "captions.ass",
@@ -155,20 +157,31 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
     srt_cues = beats_to_srt_cues(beats)
     write_srt(srt_cues, paths.output_dir / f"{stamp}_{slug}.en.srt")
 
-    # 4. Portrait-first stock footage fetch
-    clips = fetch_clips_for_queries(
+    # 4. Beat-synced, brightness-verified portrait stock footage (every spoken beat gets matching visuals!)
+    beat_clips = fetch_beat_synced_clips(
         [b.visual_query for b in script.beats],
         orientation="portrait",
-        target_clips=8,
         work_dir=run_work,
         creds=creds,
         store=store,
         fallback_queries=topic.visual_queries,
+        clips_per_beat=1,
+        hook_clips=2,
     )
+    clips = list({c.asset_key: c for bucket in beat_clips for c in bucket}.values())
     if len(clips) < 2:
         raise RuntimeError(f"Insufficient stock clips fetched ({len(clips)}). Check PEXELS_API_KEY / PIXABAY_API_KEY.")
 
-    # 5. Pure-FFmpeg 1080x1920 master render + automated QC
+    beat_specs = [
+        (
+            b_audio.start,
+            b_audio.duration + (SHORTS_BEAT_GAP_SECONDS if idx < len(beats) - 1 else 0.0),
+            bool(script.beats[idx].punch_zoom) if idx < len(script.beats) else False,
+        )
+        for idx, b_audio in enumerate(beats)
+    ]
+
+    # 5. Pure-FFmpeg 1080x1920 master render (beat-synced cuts + active punch-zoom) + automated QC
     out_mp4 = paths.output_dir / f"{stamp}_{slug}_short.mp4"
     render_short(
         clips,
@@ -179,12 +192,14 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
         total_duration=audio_duration,
         width=SHORTS_WIDTH,
         height=SHORTS_HEIGHT,
+        beat_clips=beat_clips,
+        beat_specs=beat_specs,
     )
     qc = verify_rendered_video(
         out_mp4,
         expected_width=SHORTS_WIDTH,
         expected_height=SHORTS_HEIGHT,
-        min_duration=15.0,
+        min_duration=14.0,
         work_dir=run_work,
     )
     print(f"[SHORT] QC PASSED: {qc}", flush=True)
@@ -529,7 +544,13 @@ def cmd_backfill_subtitles(args: argparse.Namespace, paths: StudioPaths, creds: 
     store = StateStore(paths.state_dir)
     youtube, _ = build_youtube_clients(creds, local_token_path=paths.repo_root / "token.json")
     verify_channel_ownership(youtube, creds.expected_channel_id)
-    stats = process_subtitle_queue(youtube, store, creds, paths.work_dir)
+    stats = process_subtitle_queue(
+        youtube,
+        store,
+        creds,
+        paths.work_dir,
+        max_captions=getattr(args, "max_captions", None),
+    )
     print(f"[I18N] Backfill complete: {stats}", flush=True)
     return 0
 
@@ -694,6 +715,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_ana.set_defaults(func=cmd_optimize_analytics)
 
     p_sub = sub.add_parser("backfill-subtitles", help="Process quota-safe multi-language subtitles & comments")
+    p_sub.add_argument("--max-captions", type=int, default=None, help="Optional cap on captions uploaded in this run")
     p_sub.set_defaults(func=cmd_backfill_subtitles)
 
     p_tr = sub.add_parser("scan-trends", help="Scan live viral YouTube camping Shorts and synthesize fresh ideas")

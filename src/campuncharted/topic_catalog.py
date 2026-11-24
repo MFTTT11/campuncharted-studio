@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-from .config import CATEGORY_EDUCATION, CATEGORY_TRAVEL_EVENTS, DEFAULT_SERIES_WEIGHTS
+from .config import CATEGORY_EDUCATION, CATEGORY_TRAVEL_EVENTS, DEFAULT_SERIES_WEIGHTS, SHORTS_ACTIVE_VIRAL_SERIES
 from .state_store import StateStore, concept_tokens, is_near_duplicate_concept, normalize_key
 
 
@@ -210,6 +210,72 @@ SHORT_TOPICS: tuple[ShortTopic, ...] = (
         mood="CANYON_BREEZE",
         category_id=CATEGORY_EDUCATION,
         extra_tags=("wildlife safety", "safari camping", "nature rules"),
+    ),
+    ShortTopic(
+        topic_id="mistake_eating_snow_hypothermia",
+        series="CAMP_MISTAKES",
+        subject="Why Eating Unmelted Snow in Winter Accelerates Hypothermia",
+        angle_hook="Eating snow when you are dehydrated in winter can drop your core temperature dangerously fast",
+        wiki_titles=("Hypothermia", "Winter_camping"),
+        visual_queries=("snowy mountain hiker winter", "hand holding snow winter forest", "camp stove melting snow pot", "winter tent deep snow"),
+        mood="ALPINE_WIND",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("winter survival", "hypothermia", "camping mistakes"),
+    ),
+    ShortTopic(
+        topic_id="mistake_cooking_inside_tent_co",
+        series="CAMP_MISTAKES",
+        subject="Why Firing a Camp Stove Inside a Closed Tent Creates Invisible Carbon Monoxide",
+        angle_hook="Boiling water inside a zipped tent produces odorless gas that knocks campers out silently",
+        wiki_titles=("Carbon_monoxide_poisoning", "Portable_stove"),
+        visual_queries=("camp stove flame tent", "winter camping tent snow", "boiling water camp stove outdoors", "mountain morning campsite"),
+        mood="ALPINE_WIND",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("camping safety", "camp stove", "survival mistakes"),
+    ),
+    ShortTopic(
+        topic_id="mistake_mylar_blanket_air_gap",
+        series="GEAR_AND_HACKS",
+        subject="Why Wrapping a Foil Emergency Blanket Tightly Against Your Body Backfires",
+        angle_hook="Wrapping a survival foil blanket skin-tight loses the air pocket that reflects body heat",
+        wiki_titles=("Space_blanket", "Thermal_radiation"),
+        visual_queries=("winter hiker cold mountain", "emergency camp shelter forest", "frosty morning forest camp", "campfire warmth wilderness"),
+        mood="ALPINE_WIND",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("survival hacks", "emergency gear", "winter camping"),
+    ),
+    ShortTopic(
+        topic_id="hack_deadman_anchor_snow_sand",
+        series="GEAR_AND_HACKS",
+        subject="The Buried Deadman Anchor Hack When Tent Stakes Pull Out of Snow or Sand",
+        angle_hook="Normal tent pegs rip straight out of snow or sand unless you bury a horizontal stick sideways",
+        wiki_titles=("Tent_peg", "Snow_anchor"),
+        visual_queries=("tent wind snowy mountain", "beach sand camping tent", "wooden stick snow ground", "securing tent rope outdoors"),
+        mood="ALPINE_WIND",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("camping hacks", "tent tips", "winter camping"),
+    ),
+    ShortTopic(
+        topic_id="hack_split_wet_log_dry_core",
+        series="GEAR_AND_HACKS",
+        subject="Why Soaking-Wet Forest Logs Hide Bone-Dry Tinder Right Inside",
+        angle_hook="Even after three days of pouring rain, splitting a dead log reveals dry inner wood for instant fire",
+        wiki_titles=("Fire_making", "Wood_splitting"),
+        visual_queries=("rainy pine forest woods", "splitting firewood axe outdoors", "camp fire sparks kindling", "crackling campfire flames"),
+        mood="FOREST_RAIN",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("bushcraft fire", "wet weather camping", "survival hacks"),
+    ),
+    ShortTopic(
+        topic_id="nature_lenticular_cloud_ridge_wind",
+        series="EXTREME_WEATHER_NATURE",
+        subject="Why UFO-Shaped Lenticular Clouds Warn Campers of Extreme Ridge Winds",
+        angle_hook="Smooth saucer clouds hovering over a mountain peak signal violent high-altitude winds ahead",
+        wiki_titles=("Lenticular_cloud",),
+        visual_queries=("lenticular clouds mountain peak", "windy mountain ridge clouds", "camping tent alpine mountains", "dramatic mountain sky sunset"),
+        mood="ALPINE_WIND",
+        category_id=CATEGORY_EDUCATION,
+        extra_tags=("mountain weather", "camping safety", "nature warning"),
     ),
 
     # --- SERIES 2: WILD_STAYS (Extraordinary Real Places — High-Curiosity Global Landmarks) ---
@@ -1105,10 +1171,21 @@ def pick_next_short_topic(
         filtered = [t for t in (unused_trending + unused_evergreen) if t.series == series_override.upper()]
         if filtered:
             candidates = filtered
+    else:
+        # Laser-focus autonomous Shorts on high-retention survival mistakes, gear hacks & extreme nature
+        # (encyclopedic place profiles remain in 16:9 Documentaries or manual --series overrides)
+        active_set = set(SHORTS_ACTIVE_VIRAL_SERIES)
+        core_candidates = [t for t in candidates if t.series in active_set]
+        if core_candidates:
+            candidates = core_candidates
+        else:
+            core_fallback = [t for t in (unused_trending + unused_evergreen) if t.series in active_set]
+            if core_fallback:
+                candidates = core_fallback
 
     if not candidates:
-        # Never stall: recycle oldest concepts with fresh angles only after exhausting the full catalog
-        candidates = list(SHORT_TOPICS)
+        # Never stall: recycle oldest core viral concepts only after exhausting the full catalog
+        candidates = [t for t in SHORT_TOPICS if t.series in set(SHORTS_ACTIVE_VIRAL_SERIES)] or list(SHORT_TOPICS)
 
     # Load dynamic series weights learned from YouTube Analytics
     insights = store.get_channel_insights()

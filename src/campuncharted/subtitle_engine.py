@@ -127,6 +127,53 @@ def group_words_into_bursts(words: list[WordTiming], *, max_words: int = 3, max_
     return bursts
 
 
+ALERT_KEYWORDS = frozenset(
+    {
+        "NEVER",
+        "STOP",
+        "DEADLY",
+        "FATAL",
+        "KILL",
+        "KILLS",
+        "KILLED",
+        "FREEZE",
+        "FREEZES",
+        "FROZEN",
+        "EXPLODE",
+        "EXPLODES",
+        "SHRAPNEL",
+        "TRAP",
+        "DANGER",
+        "DANGEROUS",
+        "TOXIC",
+        "MISTAKE",
+        "WRONG",
+        "WORST",
+        "FLOOD",
+        "FLOODS",
+        "LIGHTNING",
+        "HYPOTHERMIA",
+        "CARBON",
+        "MONOXIDE",
+        "WARNING",
+        "INSTANTLY",
+        "USELESS",
+        "BURNS",
+        "FIRE",
+        "SURVIVE",
+    }
+)
+
+
+def _is_alert_token(word: str) -> bool:
+    cleaned = re.sub(r"[^A-Za-z0-9%$]", "", str(word or "")).upper()
+    if not cleaned:
+        return False
+    if cleaned in ALERT_KEYWORDS:
+        return True
+    return any(ch.isdigit() for ch in cleaned)
+
+
 def generate_shorts_karaoke_ass(
     beats: list[BeatAudio],
     out_ass: Path,
@@ -136,12 +183,12 @@ def generate_shorts_karaoke_ass(
     width: int = SHORTS_WIDTH,
     height: int = SHORTS_HEIGHT,
 ) -> Path:
-    """Generate dynamic word-by-word gold-highlighted ASS subtitles + 0.0-1.85s scroll-stopper hook banner."""
+    """Generate high-retention 1-2 word karaoke ASS captions + clean non-overlapping opening hook banner."""
     out_ass.parent.mkdir(parents=True, exist_ok=True)
     font_family = detect_ass_font_family()
 
     # ASS colors use &HAABBGGRR format:
-    # Pure white: &H00FFFFFF, Warm viral gold (#FFD43B): &H003BD4FF, Charcoal outline: &H000A0A0A
+    # Pure white: &H00FFFFFF, Viral gold (#FFD43B): &H003BD4FF, Alert coral-red (#FF4D3B): &H003B4DFF, Outline: &H000A0A0A
     header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {width}
@@ -151,34 +198,34 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Karaoke,{font_family},84,&H00FFFFFF,&H003BD4FF,&H000A0A0A,&H96000000,-1,0,0,0,100,100,1,0,1,6,3,2,64,64,475,1
-Style: TopPill,{font_family},36,&H003BD4FF,&H00FFFFFF,&H55101418,&H00000000,-1,0,0,0,100,100,2,0,3,16,0,8,60,60,145,1
-Style: HookBanner,{font_family},108,&H003BD4FF,&H00FFFFFF,&H00080A0F,&HA0000000,-1,0,0,0,100,100,2,0,1,9,4,8,56,56,280,1
+Style: Karaoke,{font_family},92,&H00FFFFFF,&H003BD4FF,&H000A0A0A,&H96000000,-1,0,0,0,100,100,1,0,1,7,3,2,64,64,535,1
+Style: TopPill,{font_family},34,&H003BD4FF,&H00FFFFFF,&H55101418,&H00000000,-1,0,0,0,100,100,2,0,3,14,0,8,60,60,150,1
+Style: HookBanner,{font_family},96,&H003BD4FF,&H00FFFFFF,&H00080A0F,&HA0000000,-1,0,0,0,100,100,2,0,1,9,4,8,56,56,300,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     events: list[str] = []
 
-    if pill_label.strip():
-        clean_pill = escape_ass_text(pill_label.strip().upper()[:30])
-        events.append(
-            f"Dialogue: 1,{format_ass_time(0.0)},{format_ass_time(2.60)},TopPill,,0,0,0,,"
-            f"{{\\fad(120,260)}}●  {clean_pill}"
-        )
-
     if hook_banner.strip():
-        # Instant 0.0-1.85s visual scroll-stopper with quick pop-in scale animation (grabs muted scrollers in 0.3s!)
-        clean_hook = escape_ass_text(hook_banner.strip().upper()[:24])
+        # Clean, single-focus 0.0-1.35s scroll-stopper (no competing TopPill clutter during the opening hook!)
+        hook_words = hook_banner.strip().upper().split()[:3]
+        clean_hook = escape_ass_text(" ".join(hook_words)[:18])
         events.append(
-            f"Dialogue: 2,{format_ass_time(0.0)},{format_ass_time(1.85)},HookBanner,,0,0,0,,"
-            f"{{\\fscx88\\fscy88\\t(0,110,\\fscx104\\fscy104)\\t(110,180,\\fscx100\\fscy100)\\fad(0,180)}}{clean_hook}"
+            f"Dialogue: 2,{format_ass_time(0.0)},{format_ass_time(1.35)},HookBanner,,0,0,0,,"
+            f"{{\\fscx86\\fscy86\\t(0,95,\\fscx106\\fscy106)\\t(95,165,\\fscx100\\fscy100)\\fad(0,160)}}{clean_hook}"
+        )
+    elif pill_label.strip():
+        clean_pill = escape_ass_text(pill_label.strip().upper()[:26])
+        events.append(
+            f"Dialogue: 1,{format_ass_time(0.0)},{format_ass_time(2.20)},TopPill,,0,0,0,,"
+            f"{{\\fad(120,240)}}{clean_pill}"
         )
 
     all_bursts: list[list[WordTiming]] = []
     for beat in beats:
         if beat.words:
-            all_bursts.extend(group_words_into_bursts(beat.words, max_words=3, max_chars=19))
+            all_bursts.extend(group_words_into_bursts(beat.words, max_words=2, max_chars=14))
 
     for b_idx, burst in enumerate(all_bursts):
         next_burst_start = all_bursts[b_idx + 1][0].start if b_idx + 1 < len(all_bursts) else None
@@ -195,8 +242,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             for j, token_obj in enumerate(burst):
                 txt = escape_ass_text(token_obj.word.upper())
                 if j == w_idx:
-                    # Highlight actively spoken word in vibrant gold with crisp micro-pop
-                    styled_tokens.append(f"{{\\c&H003BD4FF&\\fscx106\\fscy106}}{txt}{{\\c&H00FFFFFF&\\fscx100\\fscy100}}")
+                    if _is_alert_token(token_obj.word):
+                        # Highlight danger/number power words in high-contrast coral-red with punch pop
+                        styled_tokens.append(f"{{\\c&H003B4DFF&\\fscx110\\fscy110}}{txt}{{\\c&H00FFFFFF&\\fscx100\\fscy100}}")
+                    else:
+                        # Highlight actively spoken word in vibrant viral gold with crisp micro-pop
+                        styled_tokens.append(f"{{\\c&H003BD4FF&\\fscx108\\fscy108}}{txt}{{\\c&H00FFFFFF&\\fscx100\\fscy100}}")
                 else:
                     styled_tokens.append(txt)
 

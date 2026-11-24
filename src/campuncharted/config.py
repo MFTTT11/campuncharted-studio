@@ -17,7 +17,7 @@ DOC_WIDTH = 1920
 DOC_HEIGHT = 1080
 VIDEO_FPS = 30
 
-SHORTS_DAILY_LIMIT = 3
+SHORTS_DAILY_LIMIT = 2
 DOC_WEEKLY_LIMIT = 2
 
 # Peak global UTC publishing slots (US morning/lunch/evening + EU afternoon/evening)
@@ -34,8 +34,10 @@ SUBTITLE_LANGUAGES = {
 }
 
 # Daily quota cap for caption/localization operations (out of 10,000 YouTube units/day)
-# Keeps 8,200+ units always reserved for 3 Shorts (4,800) + 1 Documentary (1,600) + thumbnails.
+# Keeps 8,200+ units always reserved for Shorts + Documentary + thumbnails.
 DAILY_LANGUAGE_QUOTA_BUDGET = 1800
+# Reserve quota during non-English backfill so fresh daily uploads always get English CC + localizations
+DAILY_EN_CAPTION_RESERVE = 450
 
 # High-quality Gemini model preference (active 3.x models first; 2.5 is retired for new keys!)
 GEMINI_PREFERRED_MODELS = (
@@ -60,15 +62,22 @@ DOCUMENTARY_VOICES_EN = (
     "en-US-GuyNeural",
 )
 
-# Shorts narration pacing: punchy, confident, zero dead air for >100% loop retention
-SHORTS_TTS_RATE = "+11%"
+# Shorts narration pacing: crisp, urgent, zero dead air for >100% seamless loop retention
+SHORTS_TTS_RATE = "+10%"
 SHORTS_TTS_PITCH = "+0Hz"
-SHORTS_BEAT_GAP_SECONDS = 0.06
+SHORTS_BEAT_GAP_SECONDS = 0.04
 
 # Documentary narration pacing: warm, cinematic, steady
 DOC_TTS_RATE = "+0%"
 DOC_TTS_PITCH = "-1Hz"
 DOC_CHAPTER_GAP_SECONDS = 0.65
+
+# Core high-retention Shorts series (encyclopedia/place profiles stay in 16:9 Documentaries or manual overrides)
+SHORTS_ACTIVE_VIRAL_SERIES = (
+    "CAMP_MISTAKES",
+    "GEAR_AND_HACKS",
+    "EXTREME_WEATHER_NATURE",
+)
 
 # Initial series rotation weights (dynamically updated by analytics_engine)
 DEFAULT_SERIES_WEIGHTS = {

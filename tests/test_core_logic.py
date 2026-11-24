@@ -981,3 +981,260 @@ def test_ass_hook_banner_hex_and_word_timing_bounds(tmp_path: Path) -> None:
     ass_text = ass_path.read_text(encoding="utf-8")
     assert "&HA0000000," in ass_text
     assert "&HA000000," not in ass_text
+
+
+def test_v3_short_script_guardrails_enforce_fast_hook_and_seamless_loop() -> None:
+    topic = SHORT_TOPICS[0]
+
+    def _make_script(first_line: str, last_line: str, extra_beats: int = 0) -> ShortScript:
+        beats = [
+            ShortBeat(narration=first_line, visual_query="winter tent snow"),
+            ShortBeat(narration="Your body weight crushes down insulation flat against cold earth.", visual_query="sleeping bag tent"),
+            ShortBeat(narration="Frozen soil steals your heat sixty times faster than air.", visual_query="frozen ground frost"),
+            ShortBeat(narration="That heat drain triggers dangerous shivering inside an hour.", visual_query="snowy pine forest"),
+            ShortBeat(narration="Slide an insulated pad or thick pine boughs underneath first.", visual_query="pine tree branches"),
+        ]
+        for i in range(extra_beats):
+            beats.append(
+                ShortBeat(
+                    narration=f"Extra rambling filler beat number {i} that adds way too many unnecessary words to stretch the runtime.",
+                    visual_query="mountain forest",
+                )
+            )
+        beats.append(ShortBeat(narration=last_line, visual_query="winter campsite morning"))
+        return ShortScript(
+            title="Why a $500 Sleeping Bag Still Freezes You",
+            thumbnail_hook="NEVER SKIP THIS LAYER PLEASE",
+            pill_label="WINTER SURVIVAL RULE",
+            description_hook="Ground cold beats expensive bags. What pad do you pack?",
+            pinned_comment="What R-value pad do you trust below freezing?",
+            tags=["winter camping", "sleeping pad", "camping mistakes"],
+            beats=beats,
+        )
+
+    # 1. Beat 1 over 13 words must be rejected (too slow for 2s hook)
+    slow_hook = _make_script(
+        "This really expensive winter sleeping bag you just bought online at the store will completely fail you tonight.",
+        "Skip that thin pad underneath and...",
+    )
+    with pytest.raises(ValueError, match="too slow"):
+        validate_and_polish_short_script(slow_hook, topic)
+
+    # 2. Swipe-triggering "Would you...?" closing question must be rejected
+    bad_closer = _make_script(
+        "A five-hundred-dollar sleeping bag can still freeze you.",
+        "Would you ever sleep on snow without a pad?",
+    )
+    with pytest.raises(ValueError, match="closing question"):
+        validate_and_polish_short_script(bad_closer, topic)
+
+    # 3. Valid V3 seamless-loop script trims excess beats, caps thumbnail_hook, and activates punch_zoom
+    valid_verbose = _make_script(
+        "A five-hundred-dollar sleeping bag can still freeze you.",
+        "Skip that one thin layer underneath and...",
+        extra_beats=3,
+    )
+    polished = validate_and_polish_short_script(valid_verbose, topic)
+    assert sum(len(b.narration.split()) for b in polished.beats) <= 88
+    assert polished.beats[0].punch_zoom is True
+    assert polished.beats[-2].punch_zoom is True
+    assert len(polished.thumbnail_hook) <= 18
+    assert polished.beats[-1].narration.startswith("Skip that one thin layer")
+
+
+def test_v3_karaoke_ass_alert_highlight_and_clean_hook_banner(tmp_path: Path) -> None:
+    line = "Never pay 500 dollars for a deadly trap."
+    words = build_word_timings(line, [], timeline_offset=0.0, clip_duration=2.4)
+    beats = [BeatAudio(index=0, text=line, audio_path=tmp_path / "b.wav", start=0.0, duration=2.4, words=words)]
+    ass_path = generate_shorts_karaoke_ass(
+        beats,
+        tmp_path / "viral.ass",
+        pill_label="WINTER TRAP",
+        hook_banner="NEVER DO THIS",
+    )
+    ass_text = ass_path.read_text(encoding="utf-8")
+    # HookBanner present without competing TopPill dialogue at t=0
+    assert "Dialogue: 2,0:00:00.00,0:00:01.35,HookBanner" in ass_text
+    assert "Dialogue: 1,0:00:00.00" not in ass_text
+    # Alert words (NEVER / 500 / DEADLY / TRAP) pop in coral-red, normal words in viral gold
+    assert r"\c&H003B4DFF&" in ass_text
+    assert r"\c&H003BD4FF&" in ass_text
+
+
+def test_v3_topic_picker_focuses_on_core_viral_series_unless_overridden(tmp_path: Path) -> None:
+    from campuncharted.config import SHORTS_ACTIVE_VIRAL_SERIES
+
+    store = StateStore(tmp_path / "viral_series_state")
+    for i in range(6):
+        picked = pick_next_short_topic(store)
+        assert picked.series in SHORTS_ACTIVE_VIRAL_SERIES
+        store.record_topic(topic_id=picked.topic_id, series=picked.series, title=f"Short {i}", format_type="short")
+
+    # Explicit override still allows WILD_STAYS when manually requested
+    manual = pick_next_short_topic(store, series_override="WILD_STAYS")
+    assert manual.series == "WILD_STAYS"
+
+
+def test_v3_fetch_beat_synced_clips_matches_every_beat_and_skips_dark_hook(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import campuncharted.media_engine as media_mod
+    from campuncharted.config import ApiCredentials
+    from campuncharted.media_engine import MediaAsset, fetch_beat_synced_clips
+
+    store = StateStore(tmp_path / "media_state")
+    queries_searched: list[str] = []
+
+    def fake_pexels(query: str, *, orientation: str, api_key: str, store: StateStore, per_page: int = 10, session=None):
+        queries_searched.append(query)
+        slug = query.replace(" ", "_")
+        return [
+            MediaAsset(
+                asset_key=f"pex_{slug}_dark",
+                provider="Pexels",
+                asset_id=f"{slug}_dark",
+                download_url=f"https://example.com/{slug}_dark.mp4",
+                page_url="",
+                title=slug,
+                author="A",
+                license_name="Pexels",
+                width=1080,
+                height=1920,
+                duration=12.0,
+            ),
+            MediaAsset(
+                asset_key=f"pex_{slug}_bright1",
+                provider="Pexels",
+                asset_id=f"{slug}_bright1",
+                download_url=f"https://example.com/{slug}_bright1.mp4",
+                page_url="",
+                title=slug,
+                author="B",
+                license_name="Pexels",
+                width=1080,
+                height=1920,
+                duration=14.0,
+            ),
+            MediaAsset(
+                asset_key=f"pex_{slug}_bright2",
+                provider="Pexels",
+                asset_id=f"{slug}_bright2",
+                download_url=f"https://example.com/{slug}_bright2.mp4",
+                page_url="",
+                title=slug,
+                author="C",
+                license_name="Pexels",
+                width=1080,
+                height=1920,
+                duration=15.0,
+            ),
+        ]
+
+    def fake_download(asset: MediaAsset, dest_path: Path, *, session=None) -> bool:
+        dest_path.write_bytes(b"fake-mp4-bytes")
+        asset.local_path = dest_path
+        return True
+
+    def fake_probe(path: Path, duration: float, probe_dir: Path, tag: str):
+        if "_dark" in path.name:
+            return (12.0, 20.0)  # Dark clip must be skipped!
+        return (125.0, 48.0)  # Bright, high-contrast clip passes
+
+    monkeypatch.setattr(media_mod, "search_pexels", fake_pexels)
+    monkeypatch.setattr(media_mod, "search_pixabay", lambda *a, **kw: [])
+    monkeypatch.setattr(media_mod, "download_asset", fake_download)
+
+    beat_queries = ["winter tent snow", "sleeping bag floor", "frozen ground ice", "pine branches forest"]
+    matched = fetch_beat_synced_clips(
+        beat_queries,
+        orientation="portrait",
+        work_dir=tmp_path / "work",
+        creds=ApiCredentials(pexels_api_key="dummy"),
+        store=store,
+        clips_per_beat=1,
+        hook_clips=2,
+        brightness_probe=fake_probe,
+    )
+
+    assert len(matched) == 4
+    # Every single beat query was searched (no stopping after Beat 2!)
+    assert queries_searched == beat_queries
+    # Beat 0 skipped the dark clip and got 2 bright clips from Beat 0's own query
+    assert len(matched[0]) == 2
+    assert all("winter_tent_snow_bright" in c.asset_key for c in matched[0])
+    assert all(c.beat_index == 0 for c in matched[0])
+    # Beat 3 got a bright clip matching Beat 3's own query
+    assert len(matched[3]) == 1
+    assert "pine_branches_forest_bright" in matched[3][0].asset_key
+    assert matched[3][0].beat_index == 3
+
+
+def test_v3_subtitle_queue_reserves_daily_quota_for_english_cc(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import campuncharted.youtube_engine as yt_mod
+    from campuncharted.config import ApiCredentials
+    from campuncharted.content_engine import TranslationBatch
+    from campuncharted.youtube_engine import enqueue_video_for_post_processing, process_subtitle_queue
+
+    store = StateStore(tmp_path / "reserve_state")
+    cues = [(0.0, 2.0, "Never camp under dead trees.")]
+    enqueue_video_for_post_processing(
+        store,
+        video_id="vid_existing",
+        title="Existing Short",
+        description="Desc",
+        cues=cues,
+        comment_posted=True,
+    )
+    # Mark 'en' already done so backfill tries non-English languages (es, tr, de, fr)
+    q = store.get_subtitle_queue()
+    q["videos"]["vid_existing"]["done_langs"] = ["en"]
+    q["videos"]["vid_existing"]["localized_langs"] = ["es", "tr", "de", "fr"]
+    store.save_subtitle_queue(q)
+
+    uploaded: list[tuple[str, str]] = []
+
+    class FakeCaptions:
+        def insert(self, **kwargs):
+            snip = kwargs["body"]["snippet"]
+            uploaded.append((snip["videoId"], snip["language"]))
+            return SimpleNamespace(execute=lambda: {"id": "cap"})
+
+    fake_yt = SimpleNamespace(captions=lambda: FakeCaptions())
+    monkeypatch.setattr(
+        yt_mod,
+        "translate_subtitles_and_metadata",
+        lambda **kw: TranslationBatch(localized_title="T", localized_description="D", translated_lines=["L"]),
+    )
+
+    now = datetime(2026, 11, 25, 10, 0, 0, tzinfo=timezone.utc)
+    # Daily budget 1800 with 450 EN reserve -> non-English backfill caps at 1350 (max 3x400 = 1200 units)
+    stats_backfill = process_subtitle_queue(
+        fake_yt,
+        store,
+        ApiCredentials(gemini_api_key="dummy"),
+        tmp_path / "work_bf",
+        daily_budget=1800,
+        now_utc=now,
+    )
+    assert stats_backfill["quota_used_today"] == 1200
+    assert len(uploaded) == 3  # Left 600 units unspent for fresh uploads' English CC!
+
+    # Later the same day, a brand-new Short is uploaded -> English CC MUST succeed using the reserved quota!
+    enqueue_video_for_post_processing(
+        store,
+        video_id="vid_fresh_today",
+        title="Fresh Short",
+        description="Desc",
+        cues=cues,
+        comment_posted=True,
+    )
+    stats_fresh = process_subtitle_queue(
+        fake_yt,
+        store,
+        ApiCredentials(gemini_api_key=""),
+        tmp_path / "work_fresh",
+        daily_budget=1800,
+        max_captions=1,
+        now_utc=now,
+    )
+    assert ("vid_fresh_today", "en") in uploaded
+    assert stats_fresh["captions_uploaded"] == 1
+    assert stats_fresh["quota_used_today"] == 1600

@@ -23,6 +23,7 @@ class VisualCut:
     source_start: float
     duration: float
     motion_mode: int
+    punch_zoom: bool = False
 
 
 def _escape_ffmpeg_filter_path(path: Path) -> str:
@@ -107,6 +108,36 @@ def _probe_frame_metrics(
         return None
 
 
+def _find_bright_start_offset(
+    asset: MediaAsset,
+    shot_dur: float,
+    work_dir: Path | None,
+    tag: str,
+) -> float:
+    """Pick the brightest non-fade-in start offset inside a stock clip so cuts open vividly."""
+    max_start = max(0.0, asset.duration - shot_dur - 0.15)
+    default_start = min(max_start, min(1.5, round(asset.duration * 0.10, 2)) if asset.duration >= 8.0 else 0.25)
+    if work_dir is None or asset.local_path is None or not asset.local_path.is_file() or max_start < 0.8:
+        return round(max(0.0, default_start), 3)
+
+    probe_dir = work_dir / "cut_offsets"
+    probe_dir.mkdir(parents=True, exist_ok=True)
+    candidates = sorted({round(min(max_start, max(0.25, t)), 2) for t in (default_start, asset.duration * 0.28, asset.duration * 0.52)})
+    best_ts = default_start
+    best_score = float("-inf")
+    for idx, ts in enumerate(candidates):
+        metrics = _probe_frame_metrics(asset.local_path, ts, probe_dir / f"{tag}_{idx}.png", resize=(180, 180))
+        if metrics is None:
+            continue
+        brightness, contrast, saturation = metrics
+        dark_pen = (45.0 - brightness) * 2.2 if brightness < 45.0 else 0.0
+        score = (contrast * 1.1) + (saturation * 0.5) + (brightness * 0.35) - dark_pen
+        if score > best_score:
+            best_score = score
+            best_ts = ts
+    return round(max(0.0, best_ts), 3)
+
+
 def rank_clips_for_hook(
     clips: list[MediaAsset],
     work_dir: Path,
@@ -177,6 +208,99 @@ def rank_clips_for_hook(
             )
         return usable
     return [asset for _, _, asset in scored]
+
+
+def plan_beat_synced_cuts(
+    beat_clips: list[list[MediaAsset]],
+    beat_specs: list[tuple[float, float, bool]],
+    total_duration: float,
+    *,
+    work_dir: Path | None = None,
+    max_shot_seconds: float = 2.15,
+) -> list[VisualCut]:
+    """Plan visual cuts strictly synced to each spoken beat's exact narration timeline and matched footage.
+
+    Each tuple in `beat_specs` is `(start_sec, duration_sec, punch_zoom)`.
+    Long beats (>max_shot_seconds) and Beat 0 (when 2 hook clips exist) split into crisp rapid
+    sub-cuts so the viewer never sees a static shot >2.15s while every frame matches the spoken beat.
+    """
+    flat_fallback = [
+        c
+        for bucket in beat_clips
+        for c in bucket
+        if c.local_path and c.local_path.is_file() and c.duration > 0.5
+    ]
+    if not flat_fallback:
+        raise ValueError("No playable beat-synced local video clips available for rendering.")
+
+    cuts: list[VisualCut] = []
+    clip_cursors: dict[str, float] = {}
+    cut_index = 0
+    num_beats = len(beat_specs)
+
+    for b_idx, (b_start, b_dur, b_punch) in enumerate(beat_specs):
+        # Compute exact visual window for this beat up to the start of the next beat (or total_duration)
+        if b_idx + 1 < num_beats:
+            next_start = max(b_start + 0.6, beat_specs[b_idx + 1][0])
+            window_dur = max(0.6, next_start - b_start)
+        else:
+            elapsed_so_far = sum(c.duration for c in cuts)
+            window_dur = max(0.7, total_duration - elapsed_so_far)
+
+        raw_bucket = beat_clips[b_idx] if b_idx < len(beat_clips) else []
+        bucket = [c for c in raw_bucket if c.local_path and c.local_path.is_file() and c.duration > 0.5]
+        if not bucket:
+            bucket = [flat_fallback[b_idx % len(flat_fallback)]]
+
+        # Split long beats (or opening hook with 2 clips) into brisk 1.2-2.1s rapid cuts
+        if b_idx == 0 and len(bucket) >= 2 and window_dur >= 1.6:
+            sub_count = 2
+        elif window_dur > max_shot_seconds:
+            sub_count = max(2, int(math.ceil(window_dur / max_shot_seconds)))
+        else:
+            sub_count = 1
+
+        sub_dur = window_dur / sub_count
+        for sub_idx in range(sub_count):
+            asset = bucket[sub_idx % len(bucket)]
+            dur = round(window_dur - sub_dur * (sub_count - 1), 3) if sub_idx == sub_count - 1 else round(sub_dur, 3)
+            dur = max(0.55, dur)
+
+            if asset.asset_key not in clip_cursors:
+                cursor = _find_bright_start_offset(asset, dur, work_dir, f"b{b_idx:02d}_s{sub_idx}")
+            else:
+                cursor = clip_cursors[asset.asset_key]
+            max_start = max(0.0, asset.duration - dur - 0.15)
+            if cursor > max_start:
+                cursor = (cursor * 0.43) % max(0.05, max_start) if max_start > 0.2 else 0.0
+            clip_cursors[asset.asset_key] = cursor + dur + 1.25
+
+            cuts.append(
+                VisualCut(
+                    index=cut_index,
+                    asset=asset,
+                    source_start=round(max(0.0, cursor), 3),
+                    duration=dur,
+                    motion_mode=cut_index % 4,
+                    punch_zoom=bool((b_punch and sub_idx == 0) or cut_index == 0),
+                )
+            )
+            cut_index += 1
+
+    # Absorb tiny float rounding drift on final cut so stitched video always covers total_duration
+    if cuts:
+        drift = total_duration - sum(c.duration for c in cuts)
+        if abs(drift) > 0.01:
+            last = cuts[-1]
+            cuts[-1] = VisualCut(
+                index=last.index,
+                asset=last.asset,
+                source_start=last.source_start,
+                duration=max(0.6, round(last.duration + drift, 3)),
+                motion_mode=last.motion_mode,
+                punch_zoom=last.punch_zoom,
+            )
+    return cuts
 
 
 def plan_visual_cuts(
@@ -250,6 +374,7 @@ def plan_visual_cuts(
                 source_start=round(max(0.0, cursor), 3),
                 duration=round(dur, 3),
                 motion_mode=idx % 4,
+                punch_zoom=bool(front_loaded_hook and idx == 0),
             )
         )
     return cuts
@@ -263,13 +388,13 @@ def _render_single_cut(
     height: int,
     fps: int = VIDEO_FPS,
 ) -> Path:
-    """Normalize, color-grade, and animate one visual cut with FFmpeg."""
+    """Normalize, color-grade, and animate one visual cut with FFmpeg (including punch-zoom when enabled)."""
     assert cut.asset.local_path is not None
     src = cut.asset.local_path
     dur = max(0.5, cut.duration)
     is_target_portrait = height > width
 
-    grade = "eq=contrast=1.06:saturation=1.12:brightness=0.01,setsar=1"
+    grade = "eq=contrast=1.08:saturation=1.16:brightness=0.015,setsar=1"
     need_loop = cut.asset.duration < (cut.source_start + dur + 0.25)
 
     # Determine whether to full-bleed animate or use tasteful blurred ambient fill (for low-res landscape in 9:16)
@@ -300,9 +425,20 @@ def _render_single_cut(
             f"[bg][fg]overlay=(W-w)/2:{fg_y}:shortest=1,format=yuv420p[vout]"
         )
         cmd.extend(["-filter_complex", filter_complex, "-map", "[vout]"])
+    elif cut.punch_zoom:
+        # Real dynamic scroll-stopping punch zoom-in (1.00x -> 1.13x) on hook & climax payoff cuts!
+        total_frames = max(1, int(round(dur * fps)))
+        vf = (
+            f"fps={fps},"
+            f"scale={width}:{height}:force_original_aspect_ratio=increase:flags=fast_bilinear,"
+            f"crop={width}:{height},"
+            f"zoompan=z='1+0.13*min(1,on/{total_frames})':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s={width}x{height}:fps={fps},"
+            f"{grade},format=yuv420p"
+        )
+        cmd.extend(["-vf", vf])
     else:
         # Smooth floating-point crop motion over slightly oversized canvas (fast, silky, zero jitter)
-        overscan = 1.08
+        overscan = 1.10
         ow = int(math.ceil((width * overscan) / 2.0) * 2)
         oh = int(math.ceil((height * overscan) / 2.0) * 2)
         prog = f"min(1\\,max(0\\,t/{dur:.3f}))"
@@ -443,19 +579,30 @@ def render_short(
     total_duration: float,
     width: int = SHORTS_WIDTH,
     height: int = SHORTS_HEIGHT,
+    beat_clips: list[list[MediaAsset]] | None = None,
+    beat_specs: list[tuple[float, float, bool]] | None = None,
 ) -> Path:
-    """Render a crisp, fast-paced 9:16 viral Short (2.6-3.6s cuts + karaoke ASS + stereo audio)."""
+    """Render a crisp, fast-paced 9:16 viral Short with beat-synced visuals, punch-zoom, and karaoke ASS."""
     seg_dir = work_dir / "segments_short"
     seg_dir.mkdir(parents=True, exist_ok=True)
 
-    ranked_clips = rank_clips_for_hook(clips, work_dir)
-    cuts = plan_visual_cuts(
-        ranked_clips,
-        total_duration + 0.12,
-        target_cut_seconds=2.45,
-        min_cut_seconds=1.85,
-        front_loaded_hook=True,
-    )
+    if beat_clips and beat_specs:
+        cuts = plan_beat_synced_cuts(
+            beat_clips,
+            beat_specs,
+            total_duration + 0.12,
+            work_dir=work_dir,
+            max_shot_seconds=2.15,
+        )
+    else:
+        ranked_clips = rank_clips_for_hook(clips, work_dir)
+        cuts = plan_visual_cuts(
+            ranked_clips,
+            total_duration + 0.12,
+            target_cut_seconds=2.25,
+            min_cut_seconds=1.65,
+            front_loaded_hook=True,
+        )
     segments: list[Path] = []
     for cut in cuts:
         seg_path = seg_dir / f"seg_{cut.index:03d}.mp4"

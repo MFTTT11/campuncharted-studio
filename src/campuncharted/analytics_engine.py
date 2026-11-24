@@ -192,7 +192,8 @@ def run_analytics_optimization(
     guidance = (
         f"Last {lookback_days}d channel performance: {total_views_30d} views, {avg_avp_all:.1f}% average view percentage, "
         f"{net_subs_30d:+d} net subscribers.{best_series_note} "
-        "Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations."
+        "Keep Shorts ultra-tight (20-26s, 55-78 words), hit with a <=10-word danger/curiosity hook in Beat 1, "
+        "deliver a save-worthy survival or gear fix, and end on a seamless loop lead-in with ZERO closing questions."
     )
 
     existing_trends = [
