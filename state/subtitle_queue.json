@@ -476,10 +476,57 @@
       "done_langs": [],
       "localized_langs": [],
       "pinned_comment": "Have you ever suffered through a freezing night because your sleeping pad failed?",
-      "comment_posted": false,
+      "comment_posted": true,
       "publish_at": "2026-11-24T23:15:00Z",
       "queued_at": "2026-11-24T18:59:00.492768+00:00"
+    },
+    "K2wRMQHo-XQ": {
+      "title": "Why Tight Space Blankets Can Still Freeze You",
+      "description": "Emergency foil blankets save lives in extreme cold, but wrapping them tightly actually drains your core body heat. Are you making this common backcountry survival mistake?\n\nKey Takeaway: Emergency space blankets reflect thermal radiation and require a trapped dead-air gap to prevent direct conductive heat loss and sweat condensation.\n\nQ: How do you use an emergency space blanket correctly?\nA: To use a space blanket effectively, drape it loosely to create a trapped air layer between the foil and your clothing, preventing heat loss from direct conduction.\n\nSubscribe to @CampUncharted for real outdoor stories, backcountry safety, and Earth's wildest places.\n\nReferences:\n- https://en.wikipedia.org/wiki/Space_blanket\n- https://en.wikipedia.org/wiki/Thermal_radiation\n\n#SpaceBlanket #EmergencyBlanket #SurvivalHacks #WinterCamping #Shorts",
+      "cues": [
+        [
+          0.0,
+          3.511,
+          "Tight wrapping an emergency space blanket will freeze you faster."
+        ],
+        [
+          3.551,
+          7.656,
+          "Foil sheets only reflect thermal radiation, not direct contact warmth."
+        ],
+        [
+          7.696,
+          11.117,
+          "Pressing metal film against skin drains heat straight through conduction."
+        ],
+        [
+          11.157,
+          15.565,
+          "Worse, trapped sweat condenses inside, soaking your base layers completely."
+        ],
+        [
+          15.605,
+          19.156,
+          "Drape the foil loosely to trap an insulating layer of still air."
+        ],
+        [
+          19.196,
+          23.012,
+          "That trapped air space lets the reflective coating bounce heat back inside."
+        ],
+        [
+          23.052,
+          24.646,
+          "If you bypass that crucial gap..."
+        ]
+      ],
+      "done_langs": [],
+      "localized_langs": [],
+      "pinned_comment": "Would you rely on a three-dollar emergency blanket in a winter storm, or do you always pack real insulation?",
+      "comment_posted": true,
+      "publish_at": "",
+      "queued_at": "2026-11-24T23:25:13.467365+00:00"
     }
   },
-  "updated_at": "2026-11-24T18:59:00.493576+00:00"
+  "updated_at": "2026-11-24T23:25:13.998955+00:00"
 }
