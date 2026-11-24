@@ -412,7 +412,74 @@
       "comment_posted": true,
       "publish_at": "2026-11-24T13:15:00Z",
       "queued_at": "2026-11-24T04:22:05.341010+00:00"
+    },
+    "4Mkitwsv_uE": {
+      "title": "Your Sleeping Bag Is Useless Without Ground Insulation",
+      "description": "Your expensive winter sleeping bag could still leave you freezing in sub-zero temperatures. Do you know why frozen ground drains your heat sixty-four times faster than cold air?\n\nKey Takeaway: Thermal conduction steals body heat into frozen ground sixty-four times faster than air, making high R-value ground insulation essential for survival.\n\nQ: Why do you get cold camping even with a warm sleeping bag?\nA: Down and synthetic sleeping bag insulation compress under body weight, eliminating trapped air pockets. Without an insulated sleeping pad, body heat transfers directly into the frozen ground via conduction.\n\nSubscribe to @CampUncharted for real outdoor stories, backcountry safety, and Earth's wildest places.\n\nReferences:\n- https://en.wikipedia.org/wiki/Hypothermia\n- https://en.wikipedia.org/wiki/Thermal_conduction\n\n#WinterCamping #CampingMistakes #Hypothermia #SleepingPad #Shorts",
+      "cues": [
+        [
+          0.0,
+          4.378,
+          "Your expensive winter sleeping bag is completely useless without this ground layer."
+        ],
+        [
+          4.438,
+          8.23,
+          "When you lie down, your body weight compresses the bag's insulation flat."
+        ],
+        [
+          8.29,
+          12.517,
+          "Direct contact with frozen soil steals your body heat sixty-four times"
+        ],
+        [
+          12.528,
+          13.709,
+          "faster than cold air"
+        ],
+        [
+          13.769,
+          17.432,
+          "This intense heat loss is called thermal conduction and it rapidly"
+        ],
+        [
+          17.444,
+          18.612,
+          "triggers hypothermia"
+        ],
+        [
+          18.672,
+          21.916,
+          "To survive, you need an insulated pad with an R-value above four."
+        ],
+        [
+          21.976,
+          26.289,
+          "In emergencies build a thick bed of evergreen branches or dry leaves first"
+        ],
+        [
+          26.349,
+          29.956,
+          "Trapping dead air underneath you is the only way to stay warm"
+        ],
+        [
+          30.136,
+          30.536,
+          "all night"
+        ],
+        [
+          30.556,
+          33.976,
+          "Never forget, the ground will freeze you long before the air does."
+        ]
+      ],
+      "done_langs": [],
+      "localized_langs": [],
+      "pinned_comment": "Have you ever suffered through a freezing night because your sleeping pad failed?",
+      "comment_posted": false,
+      "publish_at": "2026-11-24T23:15:00Z",
+      "queued_at": "2026-11-24T18:59:00.492768+00:00"
     }
   },
-  "updated_at": "2026-11-24T15:54:25.915557+00:00"
+  "updated_at": "2026-11-24T18:59:00.493576+00:00"
 }

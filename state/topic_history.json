@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-24T04:22:04.981857+00:00",
+  "updated_at": "2026-11-24T18:59:00.490606+00:00",
   "topics": [
     {
       "topic_id": "mistake_cotton_kills_trail",
@@ -45,6 +45,15 @@
       "duration_seconds": 32.7,
       "format": "short",
       "created_at": "2026-11-24T04:22:04.981839+00:00"
+    },
+    {
+      "topic_id": "trend_hypothermia_shelter_mistake",
+      "series": "CAMP_MISTAKES",
+      "title": "Your Sleeping Bag Is Useless Without Ground Insulation",
+      "video_id": "4Mkitwsv_uE",
+      "duration_seconds": 34.0,
+      "format": "short",
+      "created_at": "2026-11-24T18:59:00.490595+00:00"
     }
   ]
 }
