@@ -1,6 +1,6 @@
 {
   "quota": {
-    "2026-11-25": 450
+    "2026-11-25": 1300
   },
   "videos": {
     "KNkAeiRp3so": {
@@ -339,7 +339,9 @@
           "Would you risk sleeping here, or pack up right now?"
         ]
       ],
-      "done_langs": [],
+      "done_langs": [
+        "en"
+      ],
       "localized_langs": [
         "de",
         "es",
@@ -473,8 +475,15 @@
           "Never forget, the ground will freeze you long before the air does."
         ]
       ],
-      "done_langs": [],
-      "localized_langs": [],
+      "done_langs": [
+        "en"
+      ],
+      "localized_langs": [
+        "de",
+        "es",
+        "fr",
+        "tr"
+      ],
       "pinned_comment": "Have you ever suffered through a freezing night because your sleeping pad failed?",
       "comment_posted": true,
       "publish_at": "2026-11-24T23:15:00Z",
@@ -535,5 +544,5 @@
       "queued_at": "2026-11-24T23:25:13.467365+00:00"
     }
   },
-  "updated_at": "2026-11-25T05:37:32.282920+00:00"
+  "updated_at": "2026-11-25T15:36:58.048280+00:00"
 }

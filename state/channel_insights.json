@@ -1,29 +1,35 @@
 {
   "period": {
-    "start": "2026-10-23",
-    "end": "2026-11-22"
+    "start": "2026-10-24",
+    "end": "2026-11-23"
   },
   "channel_stats": {
-    "subscribers": 26,
-    "total_views": 34716,
-    "video_count": 246
+    "subscribers": 28,
+    "total_views": 35069,
+    "video_count": 248
   },
   "rolling_30d": {
-    "views": 2326,
-    "watch_minutes": 349.0,
-    "avg_view_duration_sec": 23.0,
-    "avg_view_percentage": 33.2,
+    "views": 2675,
+    "watch_minutes": 410.0,
+    "avg_view_duration_sec": 24.0,
+    "avg_view_percentage": 36.5,
     "subscribers_gained": 24,
     "subscribers_lost": 22,
     "net_subscribers": 2,
-    "likes": 18,
-    "comments": 1
+    "likes": 22,
+    "comments": 2
   },
   "series_metrics": {
     "CAMP_MISTAKES": {
       "count": 1,
-      "avg_views": 436.0,
-      "avg_avp": 42.1,
+      "avg_views": 549.0,
+      "avg_avp": 40.1,
+      "net_subs": 0
+    },
+    "GEAR_AND_HACKS": {
+      "count": 1,
+      "avg_views": 330.0,
+      "avg_avp": 91.3,
       "net_subs": 0
     }
   },
@@ -39,9 +45,18 @@
       "video_id": "KNkAeiRp3so",
       "title": "Why Outdoor Guides Call Cotton the Silent Killer",
       "series": "CAMP_MISTAKES",
-      "views": 436,
-      "avp": 42.1,
-      "avd": 18.0,
+      "views": 549,
+      "avp": 40.1,
+      "avd": 17.0,
+      "net_subs": 0
+    },
+    {
+      "video_id": "tfYyd6e93jM",
+      "title": "Why Wise Campers Collect Pine Resin in Rain",
+      "series": "GEAR_AND_HACKS",
+      "views": 330,
+      "avp": 91.3,
+      "avd": 40.0,
       "net_subs": 0
     },
     {
@@ -66,18 +81,9 @@
       "video_id": "eolo2RKm-Zk",
       "title": "Edirne: The Most Contested Frontier City on Earth | Edirne... #Shorts #Camp",
       "series": "LEGACY",
-      "views": 92,
-      "avp": 88.4,
+      "views": 84,
+      "avp": 84.9,
       "avd": 10.0,
-      "net_subs": 0
-    },
-    {
-      "video_id": "J4h6myWqUCM",
-      "title": "Meteora: Monasteries atop giant sandstone pillars | Thessaly, Greece #Shorts #Camp",
-      "series": "LEGACY",
-      "views": 87,
-      "avp": 55.4,
-      "avd": 29.0,
       "net_subs": 0
     },
     {
@@ -85,17 +91,17 @@
       "title": "Konya: Exploring Central Anatolian Plateau History | Konya... #Shorts #Camp",
       "series": "LEGACY",
       "views": 70,
-      "avp": 27.8,
-      "avd": 20.0,
+      "avp": 27.4,
+      "avd": 19.0,
       "net_subs": 0
     },
     {
       "video_id": "CB2i0kLWHEc",
       "title": "Ranomafana National Park: Exploring Madagascar's Rainforest Trails... #Shorts #Camp",
       "series": "LEGACY",
-      "views": 64,
-      "avp": 63.7,
-      "avd": 8.0,
+      "views": 65,
+      "avp": 65.0,
+      "avd": 9.0,
       "net_subs": 0
     },
     {
@@ -108,11 +114,11 @@
       "net_subs": 0
     }
   ],
-  "summary_guidance": "Last 30d channel performance: 2326 views, 33.2% average view percentage, +2 net subscribers. Top-performing series right now: CAMP_MISTAKES (42% avg AVP, 436 avg views). Prioritize immediate 2-second visual/curiosity hooks, high-contrast payoff beats, and save-worthy survival or place revelations. Live YouTube trends: Improvised bushcraft and household ignition hacks drive massive curiosity by turning everyday items into extreme survival tools. | Backcountry mistakes and wild animal encounter warnings capture high retention through immediate tension and life-saving utility.",
-  "updated_at": "2026-11-24T15:53:10.006484+00:00",
+  "summary_guidance": "Last 30d channel performance: 2675 views, 36.5% average view percentage, +2 net subscribers. Top-performing series right now: GEAR_AND_HACKS (91% avg AVP, 330 avg views). Keep Shorts ultra-tight (20-26s, 55-78 words), hit with a <=10-word danger/curiosity hook in Beat 1, deliver a save-worthy survival or gear fix, and end on a seamless loop lead-in with ZERO closing questions. Live YouTube trends: Micro-Skill Bushcraft Virality: Ultra-short, single-technique videos presenting high-utility field hacks generate high re-watch rates and rapid sharing. | Extreme Environment Security & Comfort: High-retention content leverages the contrast between harsh wilderness conditions and clever safety or warmth hacks.",
   "live_youtube_trends": [
-    "Improvised bushcraft and household ignition hacks drive massive curiosity by turning everyday items into extreme survival tools.",
-    "Backcountry mistakes and wild animal encounter warnings capture high retention through immediate tension and life-saving utility.",
-    "Extreme weather physics and storm-proofing gear hacks achieve high shareability by debunking common camper safety myths."
-  ]
+    "Micro-Skill Bushcraft Virality: Ultra-short, single-technique videos presenting high-utility field hacks generate high re-watch rates and rapid sharing.",
+    "Extreme Environment Security & Comfort: High-retention content leverages the contrast between harsh wilderness conditions and clever safety or warmth hacks.",
+    "Perimeter & Stealth Safety Awareness: Solo campers actively engage with content explaining physical security, wildlife defense, and night-time hazard prevention."
+  ],
+  "updated_at": "2026-11-25T15:36:23.381521+00:00"
 }
