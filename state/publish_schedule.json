@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-24T18:59:00.489832+00:00",
+  "updated_at": "2026-11-25T20:42:50.324506+00:00",
   "slots": [
     {
       "publish_at": "2026-11-23T13:15:00Z",
@@ -28,6 +28,13 @@
       "video_id": "4Mkitwsv_uE",
       "title": "Your Sleeping Bag Is Useless Without Ground Insulation",
       "recorded_at": "2026-11-24T18:59:00.489800+00:00"
+    },
+    {
+      "publish_at": "2026-11-26T16:00:00Z",
+      "format": "documentary",
+      "video_id": "kvyT0KvImr4",
+      "title": "Why Banff's Lakes Turn Turquoise: Inside Canada's Wildest Park",
+      "recorded_at": "2026-11-25T20:42:50.324473+00:00"
     }
   ]
 }
