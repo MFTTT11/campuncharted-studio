@@ -1,6 +1,6 @@
 {
   "quota": {
-    "2026-11-24": 1800
+    "2026-11-25": 450
   },
   "videos": {
     "KNkAeiRp3so": {
@@ -520,13 +520,20 @@
           "If you bypass that crucial gap..."
         ]
       ],
-      "done_langs": [],
-      "localized_langs": [],
+      "done_langs": [
+        "en"
+      ],
+      "localized_langs": [
+        "de",
+        "es",
+        "fr",
+        "tr"
+      ],
       "pinned_comment": "Would you rely on a three-dollar emergency blanket in a winter storm, or do you always pack real insulation?",
       "comment_posted": true,
       "publish_at": "",
       "queued_at": "2026-11-24T23:25:13.467365+00:00"
     }
   },
-  "updated_at": "2026-11-24T23:25:13.998955+00:00"
+  "updated_at": "2026-11-25T05:37:32.282920+00:00"
 }
