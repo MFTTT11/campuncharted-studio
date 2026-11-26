@@ -51,12 +51,17 @@ from .subtitle_engine import (
     write_srt,
 )
 from .thumbnail_engine import (
+    build_photo_search_queries,
     extract_best_frame,
-    generate_ai_thumbnail_background,
     generate_thumbnail,
     resolve_thumbnail_background,
 )
-from .topic_catalog import pick_next_documentary_topic, pick_next_short_topic
+from .topic_catalog import (
+    DOCUMENTARY_TOPICS,
+    SHORT_TOPICS,
+    pick_next_documentary_topic,
+    pick_next_short_topic,
+)
 from .video_engine import render_documentary, render_short, verify_rendered_video
 from .youtube_engine import (
     add_to_documentary_playlist,
@@ -209,8 +214,9 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
     )
     print(f"[SHORT] QC PASSED: {qc}", flush=True)
 
-    # 6. High-CTR vertical cover thumbnail (AI cinematic scene -> clean stitched video frame fallback)
+    # 6. High-CTR vertical cover thumbnail (AI scene -> 4K Stock Photo -> clean stitched video frame fallback)
     clean_thumb_source = run_work / "short_stitched.mp4"
+    short_photo_queries = tuple(dict.fromkeys([*topic.visual_queries, *(b.visual_query for b in script.beats[:2])]))
     thumb_bg, thumb_source = resolve_thumbnail_background(
         work_dir=run_work,
         title=script.title,
@@ -219,6 +225,10 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
         format_type="short",
         mood=topic.mood,
         api_key=creds.gemini_api_key,
+        pexels_api_key=creds.pexels_api_key,
+        pixabay_api_key=creds.pixabay_api_key,
+        place_label=topic.location_name,
+        visual_queries=short_photo_queries,
         fallback_video=clean_thumb_source if clean_thumb_source.is_file() else out_mp4,
         sample_count=7,
     )
@@ -441,7 +451,7 @@ def cmd_produce_doc(args: argparse.Namespace, paths: StudioPaths, creds: ApiCred
     )
     print(f"[DOC] QC PASSED: {qc}", flush=True)
 
-    # 6. High-CTR 1280x720 Documentary Thumbnail (AI cinematic scene -> clean stitched video frame fallback)
+    # 6. High-CTR 1280x720 Documentary Thumbnail (AI scene -> 4K Stock Photo -> clean stitched video frame fallback)
     clean_doc_source = run_work / "doc_stitched.mp4"
     thumb_bg, thumb_source = resolve_thumbnail_background(
         work_dir=run_work,
@@ -451,6 +461,10 @@ def cmd_produce_doc(args: argparse.Namespace, paths: StudioPaths, creds: ApiCred
         format_type="documentary",
         mood=topic.mood,
         api_key=creds.gemini_api_key,
+        pexels_api_key=creds.pexels_api_key,
+        pixabay_api_key=creds.pixabay_api_key,
+        place_label=topic.place,
+        visual_queries=topic.visual_queries,
         fallback_video=clean_doc_source if clean_doc_source.is_file() else out_mp4,
         sample_count=9,
     )
@@ -631,6 +645,36 @@ def cmd_refresh_thumbnail(args: argparse.Namespace, paths: StudioPaths, creds: A
     store = StateStore(paths.state_dir)
     history = store.get_topic_history()
     by_vid = {str(row.get("video_id", "")): row for row in history if row.get("video_id")}
+    doc_archive = store.get_documentary_archive()
+    doc_place_by_vid = {
+        str(entry.get("video_id", "")).strip(): str(entry.get("place", "")).strip()
+        for entry in doc_archive.values()
+        if isinstance(entry, dict) and str(entry.get("video_id", "")).strip()
+    }
+    doc_topic_by_id = {f"doc_{t.slug}": t for t in DOCUMENTARY_TOPICS}
+    doc_topic_by_place = {normalize_key(t.place): t for t in DOCUMENTARY_TOPICS}
+    short_topic_by_id = {t.topic_id: t for t in SHORT_TOPICS}
+
+    def _enrich_target(vid: str, row: dict[str, Any], *, title: str, fmt: str, series: str) -> dict[str, Any]:
+        topic_id = str(row.get("topic_id", "")).strip()
+        place = doc_place_by_vid.get(vid, "")
+        visual_queries: tuple[str, ...] = ()
+        doc_t = doc_topic_by_id.get(topic_id) or (doc_topic_by_place.get(normalize_key(place)) if place else None)
+        short_t = short_topic_by_id.get(topic_id)
+        if doc_t is not None:
+            place = place or doc_t.place
+            visual_queries = tuple(doc_t.visual_queries)
+        elif short_t is not None:
+            place = place or short_t.location_name
+            visual_queries = tuple(short_t.visual_queries)
+        return {
+            "video_id": vid,
+            "title": title or vid,
+            "format": fmt or "documentary",
+            "series": series or "CAMPUNCHARTED",
+            "place": place,
+            "visual_queries": visual_queries,
+        }
 
     youtube = None
     if not args.dry_run or (args.video_id and args.video_id not in by_vid):
@@ -638,7 +682,7 @@ def cmd_refresh_thumbnail(args: argparse.Namespace, paths: StudioPaths, creds: A
         info = verify_channel_ownership(youtube, creds.expected_channel_id)
         print(f"[YOUTUBE] Channel lock verified: {info['title']} ({info['channel_id']})", flush=True)
 
-    targets: list[dict[str, str]] = []
+    targets: list[dict[str, Any]] = []
     if args.video_id:
         vid = args.video_id.strip()
         row = by_vid.get(vid, {})
@@ -655,14 +699,7 @@ def cmd_refresh_thumbnail(args: argparse.Namespace, paths: StudioPaths, creds: A
                     fmt = "documentary" if "M" in dur_raw and not dur_raw.startswith("PT1M") else "short"
         if args.format and args.format != "auto":
             fmt = args.format
-        targets.append(
-            {
-                "video_id": vid,
-                "title": title or vid,
-                "format": fmt or "documentary",
-                "series": series or "CAMPUNCHARTED",
-            }
-        )
+        targets.append(_enrich_target(vid, row, title=title, fmt=fmt, series=series))
     else:
         limit = max(1, min(8, int(args.recent or 1)))
         for row in reversed(history):
@@ -673,12 +710,13 @@ def cmd_refresh_thumbnail(args: argparse.Namespace, paths: StudioPaths, creds: A
             if args.format and args.format != "auto" and fmt != args.format:
                 continue
             targets.append(
-                {
-                    "video_id": vid,
-                    "title": str(row.get("title", vid)),
-                    "format": fmt,
-                    "series": str(row.get("series", "CAMPUNCHARTED")),
-                }
+                _enrich_target(
+                    vid,
+                    row,
+                    title=str(row.get("title", vid)),
+                    fmt=fmt,
+                    series=str(row.get("series", "CAMPUNCHARTED")),
+                )
             )
             if len(targets) >= limit:
                 break
@@ -692,28 +730,43 @@ def cmd_refresh_thumbnail(args: argparse.Namespace, paths: StudioPaths, creds: A
     updated = 0
 
     for item in targets:
-        vid = item["video_id"]
-        title = item["title"]
-        fmt = item["format"]
+        vid = str(item["video_id"])
+        title = str(item["title"])
+        fmt = str(item["format"])
+        place_hint = (args.label or "").strip() or str(item.get("place", "")).strip()
+        visual_queries = tuple(item.get("visual_queries") or ())
         hook = (args.hook or "").strip().upper() or _derive_hook_from_title(title)
-        label = (args.label or "").strip().upper() or item["series"].replace("_", " ")
+        label = (args.label or "").strip().upper() or str(item.get("place", "")).strip().upper() or str(item["series"]).replace("_", " ")
 
         item_work = run_work / vid
         item_work.mkdir(parents=True, exist_ok=True)
-        bg_path = generate_ai_thumbnail_background(
-            item_work / f"{vid}_ai_bg.png",
-            title=title,
-            subject=title,
-            hook_text=hook,
-            format_type=fmt,
-            mood="EPIC_DISCOVERY" if fmt == "documentary" else "ALPINE_WIND",
-            api_key=creds.gemini_api_key,
-        )
-        source_kind = "ai"
-        if bg_path is None:
+        bg_path: Path | None = None
+        source_kind = ""
+        try:
+            bg_path, source_kind = resolve_thumbnail_background(
+                work_dir=item_work,
+                title=title,
+                subject=title,
+                hook_text=hook,
+                format_type=fmt,
+                mood="EPIC_DISCOVERY" if fmt == "documentary" else "ALPINE_WIND",
+                api_key=creds.gemini_api_key,
+                pexels_api_key=creds.pexels_api_key,
+                pixabay_api_key=creds.pixabay_api_key,
+                place_label=place_hint,
+                visual_queries=visual_queries,
+            )
+        except RuntimeError:
             orient = "portrait" if fmt == "short" else "landscape"
+            clean_queries = build_photo_search_queries(
+                title=title,
+                subject=title,
+                place_label=place_hint,
+                visual_queries=visual_queries,
+                format_type=fmt,
+            )
             clips = fetch_clips_for_queries(
-                [title, "mountain wilderness dramatic landscape"],
+                clean_queries,
                 orientation=orient,
                 target_clips=2,
                 work_dir=item_work,
@@ -721,7 +774,7 @@ def cmd_refresh_thumbnail(args: argparse.Namespace, paths: StudioPaths, creds: A
                 store=store,
             )
             if not clips or not clips[0].local_path:
-                print(f"[THUMB] Skipping {vid}: neither AI background nor stock clip available.", flush=True)
+                print(f"[THUMB] Skipping {vid}: AI, 4K stock photos, and stock clips unavailable.", flush=True)
                 continue
             bg_path = extract_best_frame(clips[0].local_path, item_work, sample_count=5)
             source_kind = "stock_frame"
