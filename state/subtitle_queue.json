@@ -1,6 +1,6 @@
 {
   "quota": {
-    "2026-11-26": 1650
+    "2026-11-26": 1700
   },
   "videos": {
     "KNkAeiRp3so": {
@@ -1063,7 +1063,54 @@
       "comment_posted": false,
       "publish_at": "2026-11-26T23:15:00Z",
       "queued_at": "2026-11-26T20:19:21.615251+00:00"
+    },
+    "hfkim-MEKVM": {
+      "title": "Why Banff's Lakes Turn Neon Turquoise",
+      "description": "Why do Banff's famous alpine waters glow a blinding neon turquoise? Watch until the end to discover what every camper must know before entering grizzly territory.\n\nWatch the Full 4K Documentary: Why Banff's Lakes Turn Turquoise: Inside Canada's Wildest Park\nhttps://youtu.be/kvyT0KvImr4\n\nKey Takeaway: Banff's lakes turn neon turquoise due to suspended glacial rock flour reflecting light, while the surrounding wilderness requires strict adherence to bear safety rules.\n\nQ: Why are the lakes in Banff National Park turquoise?\nA: Glaciers grind rock into a fine powder called rock flour, which washes into the lakes and reflects green and blue light waves.\n\nSubscribe to @CampUncharted for real outdoor stories, backcountry safety, and Earth's wildest places.\n\nReferences:\n- https://parks.canada.ca/pn-np/ab/banff\n- https://en.wikipedia.org/wiki/Banff_National_Park\n\n#BanffNationalPark #GlacialRockFlour #BanffLakes #GrizzlySafety #Shorts",
+      "cues": [
+        [
+          0.0,
+          3.345,
+          "Those neon turquoise Banff lakes hide a brutal mountain trap."
+        ],
+        [
+          3.385,
+          6.862,
+          "Ground-up glacier ice creates that glowing rock flour water."
+        ],
+        [
+          6.902,
+          10.722,
+          "Beneath the stunning views lurks active grizzly bear territory."
+        ],
+        [
+          10.762,
+          14.005,
+          "Ignoring trail condition reports can result in massive fines."
+        ],
+        [
+          14.045,
+          17.24,
+          "Always carry bear spray and check park status updates first."
+        ],
+        [
+          17.28,
+          19.746,
+          "Skip these mandatory safety checks and"
+        ]
+      ],
+      "done_langs": [],
+      "localized_langs": [
+        "de",
+        "es",
+        "fr",
+        "tr"
+      ],
+      "pinned_comment": "Would you rather camp near grizzly territory or hike without bear spray? Full 4K documentary: https://youtu.be/kvyT0KvImr4",
+      "comment_posted": false,
+      "publish_at": "2026-11-27T13:15:00Z",
+      "queued_at": "2026-11-26T21:06:38.422873+00:00"
     }
   },
-  "updated_at": "2026-11-26T20:26:40.390352+00:00"
+  "updated_at": "2026-11-26T21:06:45.212469+00:00"
 }
