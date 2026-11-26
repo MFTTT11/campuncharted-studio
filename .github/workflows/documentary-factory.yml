@@ -2,8 +2,8 @@ name: Documentary Factory (2x Weekly)
 
 on:
   schedule:
-    # 2x/week (Wed & Sat 11:17 UTC off-minute -> feeds 16:00 UTC global peak slot)
-    - cron: '17 11 * * 3,6'
+    # 2x/week (Wed & Sat 08:17 UTC off-minute, clear of 11:23 UTC Shorts Factory -> feeds 16:00 UTC global peak slot)
+    - cron: '17 8 * * 3,6'
   workflow_dispatch:
     inputs:
       dry_run:
