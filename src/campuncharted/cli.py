@@ -50,7 +50,12 @@ from .subtitle_engine import (
     generate_shorts_karaoke_ass,
     write_srt,
 )
-from .thumbnail_engine import extract_best_frame, generate_thumbnail
+from .thumbnail_engine import (
+    extract_best_frame,
+    generate_ai_thumbnail_background,
+    generate_thumbnail,
+    resolve_thumbnail_background,
+)
 from .topic_catalog import pick_next_documentary_topic, pick_next_short_topic
 from .video_engine import render_documentary, render_short, verify_rendered_video
 from .youtube_engine import (
@@ -204,12 +209,22 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
     )
     print(f"[SHORT] QC PASSED: {qc}", flush=True)
 
-    # 6. High-CTR vertical cover thumbnail (sample clean stitched video BEFORE burned-in captions!)
+    # 6. High-CTR vertical cover thumbnail (AI cinematic scene -> clean stitched video frame fallback)
     clean_thumb_source = run_work / "short_stitched.mp4"
-    best_frame = extract_best_frame(clean_thumb_source if clean_thumb_source.is_file() else out_mp4, run_work)
+    thumb_bg, thumb_source = resolve_thumbnail_background(
+        work_dir=run_work,
+        title=script.title,
+        subject=topic.subject,
+        hook_text=script.thumbnail_hook,
+        format_type="short",
+        mood=topic.mood,
+        api_key=creds.gemini_api_key,
+        fallback_video=clean_thumb_source if clean_thumb_source.is_file() else out_mp4,
+        sample_count=7,
+    )
     thumb_jpg = paths.output_dir / f"{stamp}_{slug}_short.jpg"
     generate_thumbnail(
-        best_frame,
+        thumb_bg,
         thumb_jpg,
         hook_text=script.thumbnail_hook,
         sub_label=script.pill_label,
@@ -223,6 +238,7 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
         "series": topic.series,
         "title": script.title,
         "thumbnail_hook": script.thumbnail_hook,
+        "thumbnail_source": thumb_source,
         "description": description,
         "pinned_comment": script.pinned_comment,
         "tags": script.tags,
@@ -425,12 +441,22 @@ def cmd_produce_doc(args: argparse.Namespace, paths: StudioPaths, creds: ApiCred
     )
     print(f"[DOC] QC PASSED: {qc}", flush=True)
 
-    # 6. High-CTR 1280x720 Documentary Thumbnail (sample clean stitched video BEFORE chapter overlays!)
+    # 6. High-CTR 1280x720 Documentary Thumbnail (AI cinematic scene -> clean stitched video frame fallback)
     clean_doc_source = run_work / "doc_stitched.mp4"
-    best_frame = extract_best_frame(clean_doc_source if clean_doc_source.is_file() else out_mp4, run_work, sample_count=9)
+    thumb_bg, thumb_source = resolve_thumbnail_background(
+        work_dir=run_work,
+        title=script.title,
+        subject=f"{topic.place} ({topic.region}) — {topic.hook_angle}",
+        hook_text=script.thumbnail_hook,
+        format_type="documentary",
+        mood=topic.mood,
+        api_key=creds.gemini_api_key,
+        fallback_video=clean_doc_source if clean_doc_source.is_file() else out_mp4,
+        sample_count=9,
+    )
     thumb_jpg = paths.output_dir / f"{stamp}_{slug}_doc.jpg"
     generate_thumbnail(
-        best_frame,
+        thumb_bg,
         thumb_jpg,
         hook_text=script.thumbnail_hook,
         sub_label=topic.place.upper(),
@@ -444,6 +470,7 @@ def cmd_produce_doc(args: argparse.Namespace, paths: StudioPaths, creds: ApiCred
         "place": topic.place,
         "title": script.title,
         "thumbnail_hook": script.thumbnail_hook,
+        "thumbnail_source": thumb_source,
         "chapters": [{"start": round(s, 1), "title": t} for s, t in chapter_timestamps],
         "qc": qc,
         "video_file": out_mp4.name,
@@ -583,6 +610,142 @@ def cmd_engage_comments(args: argparse.Namespace, paths: StudioPaths, creds: Api
         dry_run=bool(args.dry_run),
     )
     print(f"[COMMENTS] Engagement complete: {json.dumps(stats, ensure_ascii=False)}", flush=True)
+    return 0
+
+
+def _derive_hook_from_title(title: str) -> str:
+    """Create a crisp 2-3 word ALL-CAPS fallback thumbnail hook from a video title."""
+    stop = {
+        "why", "how", "the", "your", "you", "can", "still", "inside", "from", "with",
+        "without", "that", "this", "for", "and", "are", "into", "must", "call", "in", "on", "of", "a", "an",
+    }
+    words = [w.upper() for w in re.findall(r"[A-Za-z0-9']+", str(title or "")) if w.lower() not in stop]
+    if not words:
+        words = [w.upper() for w in re.findall(r"[A-Za-z0-9']+", str(title or ""))]
+    picked = words[:3] if len(" ".join(words[:3])) <= 18 else words[:2]
+    return " ".join(picked) or "WILDERNESS TRUTH"
+
+
+def cmd_refresh_thumbnail(args: argparse.Namespace, paths: StudioPaths, creds: ApiCredentials) -> int:
+    paths.ensure_dirs()
+    store = StateStore(paths.state_dir)
+    history = store.get_topic_history()
+    by_vid = {str(row.get("video_id", "")): row for row in history if row.get("video_id")}
+
+    youtube = None
+    if not args.dry_run or (args.video_id and args.video_id not in by_vid):
+        youtube, _ = build_youtube_clients(creds, local_token_path=paths.repo_root / "token.json")
+        info = verify_channel_ownership(youtube, creds.expected_channel_id)
+        print(f"[YOUTUBE] Channel lock verified: {info['title']} ({info['channel_id']})", flush=True)
+
+    targets: list[dict[str, str]] = []
+    if args.video_id:
+        vid = args.video_id.strip()
+        row = by_vid.get(vid, {})
+        title = str(row.get("title", "")).strip()
+        fmt = str(row.get("format", "")).strip()
+        series = str(row.get("series", "")).strip()
+        if not title and youtube is not None:
+            resp = youtube.videos().list(part="snippet,contentDetails", id=vid).execute()
+            items = resp.get("items") or []
+            if items:
+                title = str(items[0].get("snippet", {}).get("title", "")).strip()
+                if not fmt:
+                    dur_raw = str(items[0].get("contentDetails", {}).get("duration", ""))
+                    fmt = "documentary" if "M" in dur_raw and not dur_raw.startswith("PT1M") else "short"
+        if args.format and args.format != "auto":
+            fmt = args.format
+        targets.append(
+            {
+                "video_id": vid,
+                "title": title or vid,
+                "format": fmt or "documentary",
+                "series": series or "CAMPUNCHARTED",
+            }
+        )
+    else:
+        limit = max(1, min(8, int(args.recent or 1)))
+        for row in reversed(history):
+            vid = str(row.get("video_id", "")).strip()
+            if not vid:
+                continue
+            fmt = str(row.get("format", "short")).strip() or "short"
+            if args.format and args.format != "auto" and fmt != args.format:
+                continue
+            targets.append(
+                {
+                    "video_id": vid,
+                    "title": str(row.get("title", vid)),
+                    "format": fmt,
+                    "series": str(row.get("series", "CAMPUNCHARTED")),
+                }
+            )
+            if len(targets) >= limit:
+                break
+
+    if not targets:
+        print("[THUMB] No matching videos found to refresh.", flush=True)
+        return 0
+
+    run_work = paths.work_dir / f"thumb_refresh_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+    run_work.mkdir(parents=True, exist_ok=True)
+    updated = 0
+
+    for item in targets:
+        vid = item["video_id"]
+        title = item["title"]
+        fmt = item["format"]
+        hook = (args.hook or "").strip().upper() or _derive_hook_from_title(title)
+        label = (args.label or "").strip().upper() or item["series"].replace("_", " ")
+
+        item_work = run_work / vid
+        item_work.mkdir(parents=True, exist_ok=True)
+        bg_path = generate_ai_thumbnail_background(
+            item_work / f"{vid}_ai_bg.png",
+            title=title,
+            subject=title,
+            hook_text=hook,
+            format_type=fmt,
+            mood="EPIC_DISCOVERY" if fmt == "documentary" else "ALPINE_WIND",
+            api_key=creds.gemini_api_key,
+        )
+        source_kind = "ai"
+        if bg_path is None:
+            orient = "portrait" if fmt == "short" else "landscape"
+            clips = fetch_clips_for_queries(
+                [title, "mountain wilderness dramatic landscape"],
+                orientation=orient,
+                target_clips=2,
+                work_dir=item_work,
+                creds=creds,
+                store=store,
+            )
+            if not clips or not clips[0].local_path:
+                print(f"[THUMB] Skipping {vid}: neither AI background nor stock clip available.", flush=True)
+                continue
+            bg_path = extract_best_frame(clips[0].local_path, item_work, sample_count=5)
+            source_kind = "stock_frame"
+
+        out_jpg = paths.output_dir / f"{vid}_thumb_{fmt}.jpg"
+        generate_thumbnail(
+            bg_path,
+            out_jpg,
+            hook_text=hook,
+            sub_label=label,
+            format_type=fmt,
+        )
+        print(
+            f"[THUMB] Rendered {out_jpg.name} ({source_kind}, {out_jpg.stat().st_size // 1024} KB) | hook='{hook}'",
+            flush=True,
+        )
+        if not args.dry_run and youtube is not None:
+            if set_custom_thumbnail(youtube, vid, out_jpg):
+                updated += 1
+        else:
+            updated += 1
+
+    shutil.rmtree(run_work, ignore_errors=True)
+    print(f"[THUMB] Refresh complete: {updated}/{len(targets)} processed (dry_run={bool(args.dry_run)})", flush=True)
     return 0
 
 
@@ -726,6 +889,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_com.add_argument("--dry-run", action="store_true", help="Classify and draft replies without posting to YouTube")
     p_com.add_argument("--max-replies", type=int, default=8, help="Maximum replies to post in one run")
     p_com.set_defaults(func=cmd_engage_comments)
+
+    p_th = sub.add_parser("refresh-thumbnail", help="Generate and upload upgraded AI High-CTR thumbnails for existing videos")
+    p_th.add_argument("--video-id", default="", help="Specific YouTube video ID to refresh")
+    p_th.add_argument("--recent", type=int, default=1, help="Number of recent topic_history videos to refresh (1-8)")
+    p_th.add_argument("--format", default="auto", choices=("auto", "documentary", "short"), help="Thumbnail format")
+    p_th.add_argument("--hook", default="", help="Optional 2-3 word ALL-CAPS hook text override")
+    p_th.add_argument("--label", default="", help="Optional kicker pill label override")
+    p_th.add_argument("--dry-run", action="store_true", help="Render preview JPG only without uploading to YouTube")
+    p_th.set_defaults(func=cmd_refresh_thumbnail)
 
     p_auth = sub.add_parser("verify-auth", help="Verify YouTube OAuth token & channel lock")
     p_auth.set_defaults(func=cmd_verify_auth)
