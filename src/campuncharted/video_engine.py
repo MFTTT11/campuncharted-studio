@@ -517,30 +517,52 @@ def _finalize_master(
     total_duration: float,
     crf: int = 20,
     preset: str = "medium",
+    show_progress_bar: bool = False,
+    progress_color: str = "0xFFD43B",
+    width: int = SHORTS_WIDTH,
 ) -> Path:
-    """Apply smooth readability scrim, burn ASS captions/titles, and mux final AAC audio."""
+    """Apply smooth readability scrim, burn ASS captions/titles, optional top progress bar, and mux final AAC audio."""
     out_mp4.parent.mkdir(parents=True, exist_ok=True)
+    base_chain = "[0:v][1:v]overlay=0:0:shortest=1"
     if ass_path and ass_path.is_file():
         escaped = _escape_ffmpeg_filter_path(ass_path)
-        filter_complex = f"[0:v][1:v]overlay=0:0:shortest=1,ass='{escaped}',format=yuv420p[vout]"
-    else:
-        filter_complex = "[0:v][1:v]overlay=0:0:shortest=1,format=yuv420p[vout]"
+        base_chain += f",ass='{escaped}'"
 
-    subprocess.run(
+    cmd: list[str] = [
+        "ffmpeg",
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        str(stitched_video),
+        "-loop",
+        "1",
+        "-i",
+        str(scrim_png),
+        "-i",
+        str(mixed_audio_m4a),
+    ]
+
+    if show_progress_bar and total_duration > 0.5:
+        bar_dur = max(0.5, float(total_duration))
+        cmd.extend(
+            [
+                "-f",
+                "lavfi",
+                "-i",
+                f"color=c={progress_color}:s={int(width)}x8:d={bar_dur + 0.5:.3f}:r={VIDEO_FPS}",
+            ]
+        )
+        filter_complex = (
+            f"{base_chain},drawbox=x=0:y=0:w=iw:h=8:color=black@0.42:t=fill[vpre];"
+            f"[vpre][3:v]overlay=x=-W+W*min(1\\,t/{bar_dur:.3f}):y=0:shortest=1,format=yuv420p[vout]"
+        )
+    else:
+        filter_complex = f"{base_chain},format=yuv420p[vout]"
+
+    cmd.extend(
         [
-            "ffmpeg",
-            "-y",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-i",
-            str(stitched_video),
-            "-loop",
-            "1",
-            "-i",
-            str(scrim_png),
-            "-i",
-            str(mixed_audio_m4a),
             "-filter_complex",
             filter_complex,
             "-map",
@@ -562,10 +584,9 @@ def _finalize_master(
             "-movflags",
             "+faststart",
             str(out_mp4),
-        ],
-        check=True,
-        timeout=1800,
+        ]
     )
+    subprocess.run(cmd, check=True, timeout=1800)
     return out_mp4
 
 
@@ -581,8 +602,9 @@ def render_short(
     height: int = SHORTS_HEIGHT,
     beat_clips: list[list[MediaAsset]] | None = None,
     beat_specs: list[tuple[float, float, bool]] | None = None,
+    progress_color: str = "0xFFD43B",
 ) -> Path:
-    """Render a crisp, fast-paced 9:16 viral Short with beat-synced visuals, punch-zoom, and karaoke ASS."""
+    """Render a crisp, fast-paced 9:16 viral Short with beat-synced visuals, punch-zoom, progress bar, and karaoke ASS."""
     seg_dir = work_dir / "segments_short"
     seg_dir.mkdir(parents=True, exist_ok=True)
 
@@ -630,6 +652,9 @@ def render_short(
         total_duration=total_duration,
         crf=20,
         preset="veryfast",
+        show_progress_bar=True,
+        progress_color=progress_color,
+        width=width,
     )
 
 

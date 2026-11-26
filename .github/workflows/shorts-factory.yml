@@ -16,6 +16,7 @@ on:
         default: ''
         options:
           - ''
+          - BRIDGE
           - CAMP_MISTAKES
           - WILD_STAYS
           - GEAR_AND_HACKS

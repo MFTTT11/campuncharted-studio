@@ -26,7 +26,11 @@ from .config import (
     SHORTS_UTC_SLOTS,
     SUBTITLE_LANGUAGES,
 )
-from .content_engine import translate_metadata_only, translate_subtitles_and_metadata
+from .content_engine import (
+    translate_metadata_multi_lang,
+    translate_metadata_only,
+    translate_subtitles_and_metadata,
+)
 from .state_store import StateStore, normalize_key
 from .subtitle_engine import write_srt
 
@@ -605,10 +609,24 @@ def process_subtitle_queue(
         localized_langs = set(entry.get("localized_langs") or [])
         pending_for_vid = dict(pending_loc_by_video.get(video_id) or {})
 
-        # Fill remaining missing title/description languages cheaply (1 videos.update = 50 units for ALL langs!)
+        # Fill remaining missing title/description languages in ONE batched Gemini call (1 videos.update = 50 units for ALL langs!)
         missing_meta = [lang for lang in non_en_langs if lang not in localized_langs and lang not in pending_for_vid]
         if missing_meta and creds.gemini_api_key:
-            for lang_code in missing_meta:
+            remaining_meta = list(missing_meta)
+            if len(remaining_meta) >= 2:
+                try:
+                    batched = translate_metadata_multi_lang(
+                        title=entry["title"],
+                        description=entry["description"],
+                        target_langs=remaining_meta,
+                        api_key=creds.gemini_api_key,
+                    )
+                    for lang_code, payload in batched.items():
+                        pending_for_vid[lang_code] = payload
+                    remaining_meta = [lang for lang in remaining_meta if lang not in pending_for_vid]
+                except Exception as err:
+                    print(f"[I18N] Batched metadata translation failed ({video_id}); falling back per-language: {err}", flush=True)
+            for lang_code in remaining_meta:
                 try:
                     meta_t = translate_metadata_only(
                         title=entry["title"],

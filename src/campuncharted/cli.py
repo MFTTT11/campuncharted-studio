@@ -48,6 +48,7 @@ from .subtitle_engine import (
     beats_to_srt_cues,
     generate_documentary_chapters_ass,
     generate_shorts_karaoke_ass,
+    is_danger_hook,
     write_srt,
 )
 from .thumbnail_engine import (
@@ -59,6 +60,7 @@ from .thumbnail_engine import (
 from .topic_catalog import (
     DOCUMENTARY_TOPICS,
     SHORT_TOPICS,
+    get_latest_uploaded_documentary,
     pick_next_documentary_topic,
     pick_next_short_topic,
 )
@@ -191,8 +193,9 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
         for idx, b_audio in enumerate(beats)
     ]
 
-    # 5. Pure-FFmpeg 1080x1920 master render (beat-synced cuts + active punch-zoom) + automated QC
+    # 5. Pure-FFmpeg 1080x1920 master render (beat-synced cuts + punch-zoom + completion progress bar) + QC
     out_mp4 = paths.output_dir / f"{stamp}_{slug}_short.mp4"
+    bar_color = "0xFF453A" if is_danger_hook(script.thumbnail_hook) else "0xFFD43B"
     render_short(
         clips,
         mixed_audio,
@@ -204,6 +207,7 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
         height=SHORTS_HEIGHT,
         beat_clips=beat_clips,
         beat_specs=beat_specs,
+        progress_color=bar_color,
     )
     qc = verify_rendered_video(
         out_mp4,
@@ -241,7 +245,12 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
         format_type="short",
     )
 
-    description = build_short_description(script, topic, sources)
+    featured_doc = get_latest_uploaded_documentary(store)
+    description = build_short_description(script, topic, sources, featured_documentary=featured_doc)
+    pinned_comment = script.pinned_comment
+    if topic.related_video_id and topic.related_video_id not in pinned_comment:
+        pinned_comment = f"{pinned_comment} Full 4K documentary: https://youtu.be/{topic.related_video_id}".strip()
+
     manifest: dict[str, Any] = {
         "format": "short",
         "topic_id": topic.topic_id,
@@ -250,7 +259,7 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
         "thumbnail_hook": script.thumbnail_hook,
         "thumbnail_source": thumb_source,
         "description": description,
-        "pinned_comment": script.pinned_comment,
+        "pinned_comment": pinned_comment,
         "tags": script.tags,
         "qc": qc,
         "video_file": out_mp4.name,
@@ -290,7 +299,7 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
         set_custom_thumbnail(youtube, video_id, thumb_jpg)
         comment_posted = False
         if not publish_at:
-            comment_posted = post_engagement_comment(youtube, video_id, script.pinned_comment)
+            comment_posted = post_engagement_comment(youtube, video_id, pinned_comment)
         record_reserved_slot(store, publish_at=publish_at, format_type="short", video_id=video_id, title=script.title)
 
     # Persist durable state (avoid duplicating topic history or overwriting subtitle progress on remote duplicate)
@@ -315,7 +324,7 @@ def cmd_produce_short(args: argparse.Namespace, paths: StudioPaths, creds: ApiCr
             title=script.title,
             description=description,
             cues=srt_cues,
-            pinned_comment=script.pinned_comment,
+            pinned_comment=pinned_comment,
             comment_posted=comment_posted,
             publish_at=publish_at,
         )

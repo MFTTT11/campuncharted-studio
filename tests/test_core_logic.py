@@ -1565,3 +1565,216 @@ def test_hd_stock_photo_thumbnail_engine_filters_tourists_and_scores_best(tmp_pa
     )
     assert source_kind == "stock_photo"
     assert bg_path.is_file() and "pixabay_202" in bg_path.name
+
+
+def test_v4_documentary_bridge_batched_i18n_health_cooldown_and_progress_bar(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import json
+    import subprocess
+    from PIL import Image
+    from campuncharted.content_engine import (
+        build_short_description,
+        reset_model_cooldowns,
+        translate_metadata_multi_lang,
+    )
+    from campuncharted.subtitle_engine import generate_shorts_karaoke_ass, is_danger_hook
+    from campuncharted.topic_catalog import (
+        find_unbridged_documentary_short,
+        get_latest_uploaded_documentary,
+        pick_next_short_topic,
+    )
+    from campuncharted.video_engine import _finalize_master, create_gradient_scrim
+    import campuncharted.youtube_engine as yt_mod
+    from campuncharted.config import ApiCredentials
+    from campuncharted.youtube_engine import enqueue_video_for_post_processing, process_subtitle_queue
+
+    # 1. Autonomous Documentary-Bridge Engine picks an unbridged uploaded documentary once, then returns to normal rotation
+    store = StateStore(tmp_path / "v4_state")
+    store.record_documentary(
+        "Banff National Park",
+        "kvyT0KvImr4",
+        "Why Banff's Lakes Turn Turquoise: Inside Canada's Wildest Park",
+        391.2,
+    )
+    latest_doc = get_latest_uploaded_documentary(store)
+    assert latest_doc is not None and latest_doc["video_id"] == "kvyT0KvImr4"
+
+    bridge_topic = pick_next_short_topic(store)
+    assert bridge_topic.topic_id == "bridge_doc_banff_national_park"
+    assert bridge_topic.related_video_id == "kvyT0KvImr4"
+    assert "Banff" in bridge_topic.location_name
+
+    sample_script = ShortScript(
+        title="Why Banff Lakes Glow Neon Turquoise",
+        thumbnail_hook="NEON GLACIER",
+        pill_label="BANFF PARK",
+        description_hook="Glacial rock flour reflects electric blue sunlight.",
+        pinned_comment="Would you hike Banff in autumn?",
+        tags=["banff", "glacier", "nature"],
+        beats=[
+            ShortBeat(narration="Banff lakes glow neon blue without any dye.", visual_query="banff turquoise lake"),
+            ShortBeat(narration="Ancient glaciers grind mountain rock into fine dust.", visual_query="glacier ice mountain"),
+            ShortBeat(narration="Suspended flour scatters blue and green sunlight back.", visual_query="mountain lake reflection"),
+            ShortBeat(narration="In winter the ice locks that color away.", visual_query="snowy alpine lake"),
+            ShortBeat(narration="When summer melt hits the valley floor...", visual_query="glacier river valley"),
+        ],
+    )
+    bridge_desc = build_short_description(sample_script, bridge_topic, [], featured_documentary=latest_doc)
+    assert "Watch the Full 4K Documentary" in bridge_desc
+    assert "https://youtu.be/kvyT0KvImr4" in bridge_desc
+
+    # Once bridge Short is recorded, next pick MUST return to normal viral Shorts (never duplicate the bridge)
+    store.record_topic(
+        topic_id=bridge_topic.topic_id,
+        series=bridge_topic.series,
+        title=sample_script.title,
+        video_id="short_bridge_1",
+        format_type="short",
+    )
+    assert find_unbridged_documentary_short(store) is None
+    next_topic = pick_next_short_topic(store)
+    assert not next_topic.topic_id.startswith("bridge_doc_")
+    regular_desc = build_short_description(sample_script, next_topic, [], featured_documentary=latest_doc)
+    assert "Full 4K Wilderness Documentary:" in regular_desc and "https://youtu.be/kvyT0KvImr4" in regular_desc
+
+    # 2. Gemini in-process health soft-demotion + single-call batched multi-language translation
+    reset_model_cooldowns()
+    calls_made: list[str] = []
+
+    class FakeFlakyModels:
+        def list(self):
+            return [
+                SimpleNamespace(name="models/gemini-3.5-flash", supported_actions=["generateContent"]),
+                SimpleNamespace(name="models/gemini-3.5-flash-lite", supported_actions=["generateContent"]),
+            ]
+
+        def generate_content(self, *, model: str, contents: str, config: dict):
+            calls_made.append(model)
+            if model == "gemini-3.5-flash":
+                raise RuntimeError("504 DEADLINE_EXCEEDED")
+            return SimpleNamespace(
+                text=json.dumps(
+                    {
+                        "items": [
+                            {"lang": "es", "localized_title": "Lagos Turquesa Banff", "localized_description": "Desc ES"},
+                            {"lang": "tr", "localized_title": "Banff Turkuaz Gölleri", "localized_description": "Desc TR"},
+                            {"lang": "de", "localized_title": "Banff Türkise Seen", "localized_description": "Desc DE"},
+                            {"lang": "fr", "localized_title": "Lacs Turquoises Banff", "localized_description": "Desc FR"},
+                        ]
+                    }
+                )
+            )
+
+    fake_client = SimpleNamespace(models=FakeFlakyModels())
+    res1 = translate_metadata_multi_lang(
+        title="Banff Turquoise Lakes",
+        description="Desc EN",
+        target_langs=["es", "tr", "de", "fr"],
+        api_key="dummy",
+        client=fake_client,
+    )
+    assert set(res1.keys()) == {"es", "tr", "de", "fr"}
+    assert calls_made == ["gemini-3.5-flash", "gemini-3.5-flash-lite"]
+
+    # Second call in same process MUST skip cooled-down gemini-3.5-flash and hit healthy model immediately!
+    calls_made.clear()
+    res2 = translate_metadata_multi_lang(
+        title="Banff Turquoise Lakes",
+        description="Desc EN",
+        target_langs=["es", "tr"],
+        api_key="dummy",
+        client=fake_client,
+    )
+    assert set(res2.keys()) == {"es", "tr"}
+    assert calls_made == ["gemini-3.5-flash-lite"]
+    reset_model_cooldowns()
+
+    # Verify process_subtitle_queue PASS 3 invokes translate_metadata_multi_lang once for all 4 languages
+    q_store = StateStore(tmp_path / "batch_i18n_state")
+    enqueue_video_for_post_processing(
+        q_store,
+        video_id="vid_batch",
+        title="Test Short",
+        description="Desc",
+        cues=[(0.0, 2.0, "Never camp under dead trees.")],
+        comment_posted=True,
+    )
+    q_data = q_store.get_subtitle_queue()
+    q_data["videos"]["vid_batch"]["done_langs"] = ["en", "es", "tr", "de", "fr"]
+    q_store.save_subtitle_queue(q_data)
+
+    batch_calls: list[list[str]] = []
+    updated_locs: list[dict] = []
+
+    def fake_batch(**kw):
+        batch_calls.append(list(kw["target_langs"]))
+        return {code: {"title": f"{code.upper()} Title", "description": f"{code.upper()} Desc"} for code in kw["target_langs"]}
+
+    class FakeVideos:
+        def list(self, **kw):
+            return SimpleNamespace(execute=lambda: {"items": [{"snippet": {"title": "Test"}, "localizations": {}}]})
+
+        def update(self, **kw):
+            updated_locs.append(kw["body"]["localizations"])
+            return SimpleNamespace(execute=lambda: {"id": "vid_batch"})
+
+    monkeypatch.setattr(yt_mod, "translate_metadata_multi_lang", fake_batch)
+    stats = process_subtitle_queue(
+        SimpleNamespace(videos=lambda: FakeVideos()),
+        q_store,
+        ApiCredentials(gemini_api_key="dummy"),
+        tmp_path / "batch_work",
+        max_captions=1,
+    )
+    assert len(batch_calls) == 1 and set(batch_calls[0]) == {"es", "tr", "de", "fr"}
+    assert stats["localizations_updated"] == 4
+    assert len(updated_locs) == 1 and set(updated_locs[0].keys()) == {"es", "tr", "de", "fr"}
+
+    # 3. Danger-matched HookBanner color + real FFmpeg completion progress bar verification
+    assert is_danger_hook("NEVER DO THIS") is True
+    assert is_danger_hook("NEON GLACIER") is False
+    words = build_word_timings("Never camp there.", [], timeline_offset=0.0, clip_duration=2.0)
+    beats = [BeatAudio(index=0, text="Never camp there.", audio_path=tmp_path / "a.wav", start=0.0, duration=2.0, words=words)]
+    danger_ass = generate_shorts_karaoke_ass(beats, tmp_path / "danger.ass", hook_banner="NEVER DO THIS")
+    safe_ass = generate_shorts_karaoke_ass(beats, tmp_path / "safe.ass", hook_banner="NEON GLACIER")
+    assert "Style: HookBanner," in danger_ass.read_text(encoding="utf-8")
+    assert ",96,&H003B4DFF," in danger_ass.read_text(encoding="utf-8")
+    assert ",96,&H003BD4FF," in safe_ass.read_text(encoding="utf-8")
+
+    # Render a tiny 2-second 360x640 video with red progress bar and verify pixels at t=1.0s
+    stitched = tmp_path / "tiny_in.mp4"
+    audio = tmp_path / "tiny_in.m4a"
+    subprocess.run(
+        ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=0x102030:s=360x640:d=2:r=30", "-c:v", "libx264", "-preset", "ultrafast", str(stitched)],
+        check=True,
+    )
+    subprocess.run(
+        ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", "2", "-c:a", "aac", str(audio)],
+        check=True,
+    )
+    scrim = create_gradient_scrim(tmp_path / "scrim.png", width=360, height=640)
+    final_mp4 = _finalize_master(
+        stitched,
+        audio,
+        scrim,
+        None,
+        tmp_path / "tiny_out.mp4",
+        total_duration=2.0,
+        preset="ultrafast",
+        show_progress_bar=True,
+        progress_color="0xFF453A",
+        width=360,
+    )
+    mid_png = tmp_path / "mid_bar.png"
+    subprocess.run(
+        ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-ss", "1.0", "-i", str(final_mp4), "-frames:v", "1", str(mid_png)],
+        check=True,
+    )
+    with Image.open(mid_png) as im:
+        rgb = im.convert("RGB")
+        r_left, g_left, _ = rgb.getpixel((60, 4))
+        r_right, _, _ = rgb.getpixel((300, 4))
+    assert r_left > 200 and g_left < 110  # Filled coral-red bar on left half at t=50%
+    assert r_right < 60  # Unfilled dark track on right half at t=50%
