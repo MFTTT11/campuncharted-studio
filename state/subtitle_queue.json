@@ -1,6 +1,6 @@
 {
   "quota": {
-    "2026-11-26": 1200
+    "2026-11-26": 1650
   },
   "videos": {
     "KNkAeiRp3so": {
@@ -1014,7 +1014,56 @@
       "comment_posted": true,
       "publish_at": "2026-11-26T16:00:00Z",
       "queued_at": "2026-11-25T20:42:50.330829+00:00"
+    },
+    "kVjPP4e1Pkk": {
+      "title": "Why Placing Hot Cast Iron on Cold Ground Destroys It",
+      "description": "Placing your blazing hot camp skillet on cold ground is the fastest way to shatter cast iron permanently. Are you making this gear-ruining mistake in camp?\n\nKey Takeaway: Placing hot cast-iron cookware directly onto cold ground causes severe thermal shock, creating uneven material expansion that instantly cracks the metal.\n\nQ: Why does cast iron crack when placed on cold ground?\nA: Cast iron cracks due to thermal shock, which happens when a massive temperature differential causes different parts of the metal to expand at uneven rates, exceeding its tensile strength.\n\nSubscribe to @CampUncharted for real outdoor stories, backcountry safety, and Earth's wildest places.\n\nReferences:\n- https://en.wikipedia.org/wiki/Thermal_shock\n- https://en.wikipedia.org/wiki/Cast-iron_cookware\n\n#CastIronSkillet #CampingTips #OutdoorCooking #CastIronCare #Shorts",
+      "cues": [
+        [
+          0.0,
+          2.065,
+          "Never drop your hot cast iron on cold ground."
+        ],
+        [
+          2.105,
+          5.997,
+          "That sudden temperature drop triggers violent thermal shock inside the metal."
+        ],
+        [
+          6.037,
+          9.843,
+          "The hot base tries to expand while the frozen earth locks the bottom"
+        ],
+        [
+          9.883,
+          14.629,
+          "Internal mechanical strain instantly overpowers the tensile strength of the iron."
+        ],
+        [
+          14.669,
+          17.708,
+          "Always rest your hot skillet on dry wood or a camping stove"
+        ],
+        [
+          17.708,
+          18.821,
+          "grate instead and"
+        ]
+      ],
+      "done_langs": [
+        "en"
+      ],
+      "localized_langs": [
+        "de",
+        "es",
+        "fr",
+        "tr"
+      ],
+      "pinned_comment": "Who actually carries a trivet backpacking instead of just using a flat rock?",
+      "comment_posted": false,
+      "publish_at": "2026-11-26T23:15:00Z",
+      "queued_at": "2026-11-26T20:19:21.615251+00:00"
     }
   },
-  "updated_at": "2026-11-26T17:13:43.062757+00:00"
+  "updated_at": "2026-11-26T20:26:40.390352+00:00"
 }

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-25T20:42:50.324506+00:00",
+  "updated_at": "2026-11-26T20:19:21.262931+00:00",
   "slots": [
     {
       "publish_at": "2026-11-23T13:15:00Z",
@@ -35,6 +35,13 @@
       "video_id": "kvyT0KvImr4",
       "title": "Why Banff's Lakes Turn Turquoise: Inside Canada's Wildest Park",
       "recorded_at": "2026-11-25T20:42:50.324473+00:00"
+    },
+    {
+      "publish_at": "2026-11-26T23:15:00Z",
+      "format": "short",
+      "video_id": "kVjPP4e1Pkk",
+      "title": "Why Placing Hot Cast Iron on Cold Ground Destroys It",
+      "recorded_at": "2026-11-26T20:19:21.262904+00:00"
     }
   ]
 }
