@@ -1238,3 +1238,144 @@ def test_v3_subtitle_queue_reserves_daily_quota_for_english_cc(tmp_path: Path, m
     assert ("vid_fresh_today", "en") in uploaded
     assert stats_fresh["captions_uploaded"] == 1
     assert stats_fresh["quota_used_today"] == 1600
+
+
+def test_pro_thumbnail_ai_discovery_generation_fallback_and_compositor(tmp_path: Path) -> None:
+    import io
+    from PIL import Image
+    from campuncharted.cli import _derive_hook_from_title
+    from campuncharted.thumbnail_engine import (
+        build_thumbnail_scene_prompt,
+        generate_ai_thumbnail_background,
+        generate_thumbnail,
+        list_candidate_image_models,
+        resolve_thumbnail_background,
+    )
+
+    # Create a real high-contrast synthetic landscape JPEG payload for mock Gemini/Imagen responses
+    from PIL import ImageDraw
+
+    buf = io.BytesIO()
+    img = Image.new("RGB", (1280, 720), (18, 42, 74))
+    dr = ImageDraw.Draw(img)
+    dr.rectangle([0, 0, 1280, 340], fill=(235, 158, 72))
+    dr.polygon([(520, 720), (880, 180), (1280, 720)], fill=(230, 238, 245))
+    dr.ellipse([360, 400, 820, 620], fill=(24, 198, 205))
+    img.save(buf, "JPEG", quality=90)
+    valid_jpeg_bytes = buf.getvalue()
+
+    fake_models = [
+        SimpleNamespace(name="models/gemini-3.5-flash", supported_actions=["generateContent"]),
+        SimpleNamespace(name="models/gemini-3.1-flash-image-preview", supported_actions=["generateContent"]),
+        SimpleNamespace(name="models/imagen-4.0-generate-001", supported_actions=["predict"]),
+    ]
+
+    # 1. Verify dynamic image model discovery prioritizes Gemini image then Imagen, excluding text-only models
+    class FakeGeminiImageClient:
+        def __init__(self, fail_gemini: bool = False, fail_all: bool = False) -> None:
+            self.fail_gemini = fail_gemini
+            self.fail_all = fail_all
+            self.calls: list[tuple[str, str]] = []
+            self.models = self
+
+        def list(self):
+            return fake_models
+
+        def generate_content(self, *, model: str, contents: str, config: object):
+            self.calls.append(("gemini_image", model))
+            if self.fail_gemini or self.fail_all:
+                raise RuntimeError("429 RESOURCE_EXHAUSTED")
+            part = SimpleNamespace(inline_data=SimpleNamespace(data=valid_jpeg_bytes))
+            return SimpleNamespace(candidates=[SimpleNamespace(content=SimpleNamespace(parts=[part]))])
+
+        def generate_images(self, *, model: str, prompt: str, config: object):
+            self.calls.append(("imagen", model))
+            if self.fail_all:
+                raise RuntimeError("503 UNAVAILABLE")
+            return SimpleNamespace(generated_images=[SimpleNamespace(image=SimpleNamespace(image_bytes=valid_jpeg_bytes))])
+
+    c1 = FakeGeminiImageClient()
+    discovered = list_candidate_image_models(c1)
+    assert discovered[0] == ("gemini_image", "gemini-3.1-flash-image-preview")
+    assert ("imagen", "imagen-4.0-generate-001") in discovered
+    assert all(m != "gemini-3.5-flash" for _, m in discovered)
+
+    # Prompt strictly enforces zero text and format-specific composition
+    doc_prompt = build_thumbnail_scene_prompt(
+        title="Why Banff's Lakes Turn Turquoise",
+        hook_text="NEON GLACIER LAKES",
+        format_type="documentary",
+    )
+    assert "NO text" in doc_prompt and "RIGHT 55%" in doc_prompt
+
+    # 2. Gemini native image path succeeds
+    ai_doc = generate_ai_thumbnail_background(
+        tmp_path / "ai_doc.png",
+        title="Banff Turquoise Lakes",
+        hook_text="NEON GLACIER LAKES",
+        format_type="documentary",
+        client=c1,
+    )
+    assert ai_doc is not None and ai_doc.is_file()
+    assert c1.calls == [("gemini_image", "gemini-3.1-flash-image-preview")]
+
+    # 3. Gemini 429 automatically falls back to Imagen
+    c2 = FakeGeminiImageClient(fail_gemini=True)
+    ai_short = generate_ai_thumbnail_background(
+        tmp_path / "ai_short.png",
+        title="Why Bear Bags Fail",
+        hook_text="BEAR BAG FAIL",
+        format_type="short",
+        client=c2,
+    )
+    assert ai_short is not None and ai_short.is_file()
+    assert c2.calls == [
+        ("gemini_image", "gemini-3.1-flash-image-preview"),
+        ("imagen", "imagen-4.0-generate-001"),
+    ]
+
+    # 4. When ALL AI models fail, resolve_thumbnail_background returns None/falls back gracefully
+    c3 = FakeGeminiImageClient(fail_all=True)
+    assert (
+        generate_ai_thumbnail_background(
+            tmp_path / "ai_fail.png",
+            title="Test",
+            client=c3,
+        )
+        is None
+    )
+    bg_path, source_kind = resolve_thumbnail_background(
+        work_dir=tmp_path / "resolve_ok",
+        title="Banff",
+        format_type="documentary",
+        client=c1,
+    )
+    assert source_kind == "ai" and bg_path.is_file()
+
+    # 5. Compositor renders both 16:9 discovery (gold) and 9:16 danger (coral-red) cleanly under 1.9 MB
+    doc_jpg = generate_thumbnail(
+        ai_doc,
+        tmp_path / "final_doc.jpg",
+        hook_text="NEON GLACIER LAKES",
+        sub_label="BANFF NATIONAL PARK",
+        format_type="documentary",
+    )
+    short_jpg = generate_thumbnail(
+        ai_short,
+        tmp_path / "final_short.jpg",
+        hook_text="NEVER DO THIS",
+        sub_label="CAMPING MISTAKE",
+        format_type="short",
+    )
+    with Image.open(doc_jpg) as im_doc:
+        assert im_doc.size == (1280, 720)
+    with Image.open(short_jpg) as im_short:
+        assert im_short.size == (1080, 1920)
+    assert 10_000 < doc_jpg.stat().st_size <= 1_900_000
+    assert 10_000 < short_jpg.stat().st_size <= 1_900_000
+
+    # 6. Fallback title -> hook derivation produces crisp <=3 word ALL-CAPS hook
+    derived = _derive_hook_from_title("Why Your 10-Foot Bear Bag Is Failing You")
+    assert 1 <= len(derived.split()) <= 3
+    assert derived == derived.upper()
+
