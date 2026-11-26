@@ -1,35 +1,47 @@
 {
   "period": {
-    "start": "2026-10-24",
-    "end": "2026-11-23"
+    "start": "2026-10-25",
+    "end": "2026-11-24"
   },
   "channel_stats": {
     "subscribers": 28,
-    "total_views": 35069,
-    "video_count": 248
+    "total_views": 37452,
+    "video_count": 249
   },
   "rolling_30d": {
-    "views": 2675,
-    "watch_minutes": 410.0,
-    "avg_view_duration_sec": 24.0,
-    "avg_view_percentage": 36.5,
+    "views": 4213,
+    "watch_minutes": 727.0,
+    "avg_view_duration_sec": 23.0,
+    "avg_view_percentage": 44.9,
     "subscribers_gained": 24,
     "subscribers_lost": 22,
     "net_subscribers": 2,
-    "likes": 22,
-    "comments": 2
+    "likes": 38,
+    "comments": 3
   },
   "series_metrics": {
+    "WILD_STAYS": {
+      "count": 1,
+      "avg_views": 1219.0,
+      "avg_avp": 64.4,
+      "net_subs": 0
+    },
     "CAMP_MISTAKES": {
       "count": 1,
-      "avg_views": 549.0,
+      "avg_views": 548.0,
       "avg_avp": 40.1,
       "net_subs": 0
     },
     "GEAR_AND_HACKS": {
       "count": 1,
-      "avg_views": 330.0,
-      "avg_avp": 91.3,
+      "avg_views": 472.0,
+      "avg_avp": 75.0,
+      "net_subs": 0
+    },
+    "EXTREME_WEATHER_NATURE": {
+      "count": 1,
+      "avg_views": 238.0,
+      "avg_avp": 61.0,
       "net_subs": 0
     }
   },
@@ -42,10 +54,19 @@
   },
   "top_videos": [
     {
+      "video_id": "TH7tpGQNVfQ",
+      "title": "Why Sailors Feared Namibia's Skeleton Coast",
+      "series": "WILD_STAYS",
+      "views": 1219,
+      "avp": 64.4,
+      "avd": 23.0,
+      "net_subs": 0
+    },
+    {
       "video_id": "KNkAeiRp3so",
       "title": "Why Outdoor Guides Call Cotton the Silent Killer",
       "series": "CAMP_MISTAKES",
-      "views": 549,
+      "views": 548,
       "avp": 40.1,
       "avd": 17.0,
       "net_subs": 0
@@ -54,18 +75,27 @@
       "video_id": "tfYyd6e93jM",
       "title": "Why Wise Campers Collect Pine Resin in Rain",
       "series": "GEAR_AND_HACKS",
-      "views": 330,
-      "avp": 91.3,
-      "avd": 40.0,
+      "views": 472,
+      "avp": 75.0,
+      "avd": 32.0,
+      "net_subs": 0
+    },
+    {
+      "video_id": "bkmbj6XY8LA",
+      "title": "Why You Must Never Camp on a Canyon Floor",
+      "series": "EXTREME_WEATHER_NATURE",
+      "views": 238,
+      "avp": 61.0,
+      "avd": 17.0,
       "net_subs": 0
     },
     {
       "video_id": "JgrGBJRFwtM",
       "title": "Gezer: Ancient Foothills and Biblical History | Judaean Mountains... #Shorts #Camp",
       "series": "LEGACY",
-      "views": 117,
-      "avp": 106.2,
-      "avd": 31.0,
+      "views": 121,
+      "avp": 103.2,
+      "avd": 30.0,
       "net_subs": 0
     },
     {
@@ -78,21 +108,12 @@
       "net_subs": 0
     },
     {
-      "video_id": "eolo2RKm-Zk",
-      "title": "Edirne: The Most Contested Frontier City on Earth | Edirne... #Shorts #Camp",
-      "series": "LEGACY",
-      "views": 84,
-      "avp": 84.9,
-      "avd": 10.0,
-      "net_subs": 0
-    },
-    {
       "video_id": "Gdz0SchEX7s",
       "title": "Konya: Exploring Central Anatolian Plateau History | Konya... #Shorts #Camp",
       "series": "LEGACY",
-      "views": 70,
-      "avp": 27.4,
-      "avd": 19.0,
+      "views": 68,
+      "avp": 28.0,
+      "avd": 20.0,
       "net_subs": 0
     },
     {
@@ -103,22 +124,13 @@
       "avp": 65.0,
       "avd": 9.0,
       "net_subs": 0
-    },
-    {
-      "video_id": "G3YDKzbQ7CA",
-      "title": "Paklenica: Ancient Canyons of Velebit | Zadar, Croatia #Shorts #Camp",
-      "series": "LEGACY",
-      "views": 63,
-      "avp": 43.2,
-      "avd": 9.0,
-      "net_subs": 0
     }
   ],
-  "summary_guidance": "Last 30d channel performance: 2675 views, 36.5% average view percentage, +2 net subscribers. Top-performing series right now: GEAR_AND_HACKS (91% avg AVP, 330 avg views). Keep Shorts ultra-tight (20-26s, 55-78 words), hit with a <=10-word danger/curiosity hook in Beat 1, deliver a save-worthy survival or gear fix, and end on a seamless loop lead-in with ZERO closing questions. Live YouTube trends: Micro-Skill Bushcraft Virality: Ultra-short, single-technique videos presenting high-utility field hacks generate high re-watch rates and rapid sharing. | Extreme Environment Security & Comfort: High-retention content leverages the contrast between harsh wilderness conditions and clever safety or warmth hacks.",
+  "summary_guidance": "Last 30d channel performance: 4213 views, 44.9% average view percentage, +2 net subscribers. Top-performing series right now: GEAR_AND_HACKS (75% avg AVP, 472 avg views). Keep Shorts ultra-tight (20-26s, 55-78 words), hit with a <=10-word danger/curiosity hook in Beat 1, deliver a save-worthy survival or gear fix, and end on a seamless loop lead-in with ZERO closing questions. Live YouTube trends: Rapid emergency tactile crafting hacks (like improvised hand protection for thorns or extreme elements) drive massive short-form retention through fast, highly visual problem-solving in the first 3 seconds. | Stormproofing gear demonstrations featuring chemical or physical modifications (like waterproofing matches or treating tinder) create strong curiosity loops regarding failure prevention.",
   "live_youtube_trends": [
-    "Micro-Skill Bushcraft Virality: Ultra-short, single-technique videos presenting high-utility field hacks generate high re-watch rates and rapid sharing.",
-    "Extreme Environment Security & Comfort: High-retention content leverages the contrast between harsh wilderness conditions and clever safety or warmth hacks.",
-    "Perimeter & Stealth Safety Awareness: Solo campers actively engage with content explaining physical security, wildlife defense, and night-time hazard prevention."
+    "Rapid emergency tactile crafting hacks (like improvised hand protection for thorns or extreme elements) drive massive short-form retention through fast, highly visual problem-solving in the first 3 seconds.",
+    "Stormproofing gear demonstrations featuring chemical or physical modifications (like waterproofing matches or treating tinder) create strong curiosity loops regarding failure prevention.",
+    "High-stakes survival adjustments that correct a common counter-intuitive gear mistake outperform standard instructional tutorials by relying on immediate physical consequence."
   ],
-  "updated_at": "2026-11-25T15:36:23.381521+00:00"
+  "updated_at": "2026-11-26T15:15:00.339072+00:00"
 }
