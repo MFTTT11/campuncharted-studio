@@ -25,6 +25,8 @@ class ShortTopic:
     mood: str = "ALPINE_WIND"  # ALPINE_WIND | FOREST_RAIN | CAMPFIRE_NIGHT | CANYON_BREEZE | EPIC_DISCOVERY
     category_id: str = CATEGORY_TRAVEL_EVENTS
     extra_tags: tuple[str, ...] = ()
+    related_video_id: str = ""
+    related_video_title: str = ""
 
 
 @dataclass(frozen=True)
@@ -1092,18 +1094,109 @@ def _load_trending_short_topics(store: StateStore) -> list[ShortTopic]:
     return topics
 
 
+def get_latest_uploaded_documentary(store: StateStore) -> dict[str, str] | None:
+    """Return metadata for the most recently uploaded long-form documentary (if any)."""
+    archive = store.get_documentary_archive()
+    uploaded: list[dict[str, str]] = []
+    for key, entry in archive.items():
+        if not isinstance(entry, dict):
+            continue
+        vid = str(entry.get("video_id", "")).strip()
+        if not vid:
+            continue
+        uploaded.append(
+            {
+                "slug": str(key).strip(),
+                "place": str(entry.get("place", key)).strip(),
+                "video_id": vid,
+                "title": str(entry.get("title", "")).strip() or str(entry.get("place", key)).strip(),
+                "published_at": str(entry.get("published_at", "")).strip(),
+            }
+        )
+    if not uploaded:
+        return None
+    uploaded.sort(key=lambda r: r.get("published_at", ""), reverse=True)
+    return uploaded[0]
+
+
+def find_unbridged_documentary_short(store: StateStore) -> ShortTopic | None:
+    """Build a viral companion teaser Short for the newest uploaded documentary lacking a bridge Short."""
+    archive = store.get_documentary_archive()
+    history = store.get_topic_history()
+    used_topics = {normalize_key(row.get("topic_id", "")) for row in history}
+
+    doc_by_slug = {normalize_key(d.slug): d for d in DOCUMENTARY_TOPICS}
+    doc_by_place = {normalize_key(d.place): d for d in DOCUMENTARY_TOPICS}
+
+    uploaded: list[tuple[str, dict[str, Any]]] = [
+        (str(k), v)
+        for k, v in archive.items()
+        if isinstance(v, dict) and str(v.get("video_id", "")).strip()
+    ]
+    uploaded.sort(key=lambda kv: str(kv[1].get("published_at", "")), reverse=True)
+
+    for key, entry in uploaded:
+        vid = str(entry.get("video_id", "")).strip()
+        place = str(entry.get("place", key)).strip()
+        doc_title = str(entry.get("title", "")).strip() or place
+        catalog_doc = doc_by_slug.get(normalize_key(key)) or doc_by_place.get(normalize_key(place))
+        slug = catalog_doc.slug if catalog_doc else normalize_key(place).replace(" ", "_")
+        bridge_id = f"bridge_doc_{slug}"
+        if normalize_key(bridge_id) in used_topics:
+            continue
+
+        hook_angle = (
+            catalog_doc.hook_angle
+            if catalog_doc and catalog_doc.hook_angle
+            else f"The astonishing hidden natural phenomenon behind {doc_title}"
+        )
+        wiki_titles = (catalog_doc.wiki_title,) if catalog_doc and catalog_doc.wiki_title else (place.replace(" ", "_"),)
+        official_urls = (catalog_doc.official_url,) if catalog_doc and catalog_doc.official_url else ()
+        visual_queries = (
+            tuple(catalog_doc.visual_queries)
+            if catalog_doc and catalog_doc.visual_queries
+            else (f"{place} landscape", f"{place} mountains nature", "dramatic wilderness mountains")
+        )
+        mood = catalog_doc.mood if catalog_doc else "EPIC_DISCOVERY"
+
+        return ShortTopic(
+            topic_id=bridge_id,
+            series="EXTREME_WEATHER_NATURE",
+            subject=f"{place} — {hook_angle}",
+            angle_hook=f"20-second curiosity hook into {doc_title}: {hook_angle}",
+            wiki_titles=wiki_titles,
+            official_urls=official_urls,
+            visual_queries=visual_queries,
+            location_required=True,
+            location_name=place,
+            mood=mood,
+            category_id=CATEGORY_TRAVEL_EVENTS,
+            extra_tags=(place.lower(), "wilderness documentary", "nature science"),
+            related_video_id=vid,
+            related_video_title=doc_title,
+        )
+    return None
+
+
 def pick_next_short_topic(
     store: StateStore,
     *,
     series_override: str = "",
     topic_override: str = "",
 ) -> ShortTopic:
-    """Choose the next unused Short topic blending live YouTube Trend Radar ideas + evergreen catalog."""
+    """Choose the next unused Short topic blending Documentary bridges, live Trend Radar, and evergreen catalog."""
     trending_pool = _load_trending_short_topics(store)
     all_known = list(trending_pool) + list(SHORT_TOPICS)
 
     if topic_override:
         key = normalize_key(topic_override)
+        bridge_candidate = find_unbridged_documentary_short(store)
+        if bridge_candidate and (
+            key == normalize_key(bridge_candidate.topic_id)
+            or key in {"bridge", "documentary_bridge"}
+            or key in normalize_key(bridge_candidate.location_name)
+        ):
+            return bridge_candidate
         for topic in all_known:
             if normalize_key(topic.topic_id) == key or key in normalize_key(topic.subject):
                 return topic
@@ -1126,6 +1219,15 @@ def pick_next_short_topic(
 
     history = store.get_topic_history()
     used_topics = {normalize_key(row.get("topic_id", "")) for row in history}
+    recent_shorts_all = [r for r in history if r.get("format") == "short"]
+    last_was_bridge = bool(
+        recent_shorts_all and str(recent_shorts_all[-1].get("topic_id", "")).startswith("bridge_doc_")
+    )
+    if series_override.upper() == "BRIDGE" or (not series_override and not last_was_bridge):
+        bridge_topic = find_unbridged_documentary_short(store)
+        if bridge_topic is not None:
+            return bridge_topic
+
     history_concepts = [
         concept_tokens(str(row.get("topic_id", "")), str(row.get("title", "")))
         for row in history

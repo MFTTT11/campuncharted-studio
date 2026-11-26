@@ -161,6 +161,16 @@ ALERT_KEYWORDS = frozenset(
         "BURNS",
         "FIRE",
         "SURVIVE",
+        "DESTROY",
+        "DESTROYS",
+        "FAIL",
+        "FAILS",
+        "FAILING",
+        "CRACK",
+        "CRACKS",
+        "SHATTER",
+        "FORBIDDEN",
+        "BANNED",
     }
 )
 
@@ -172,6 +182,12 @@ def _is_alert_token(word: str) -> bool:
     if cleaned in ALERT_KEYWORDS:
         return True
     return any(ch.isdigit() for ch in cleaned)
+
+
+def is_danger_hook(text: str) -> bool:
+    """Return True if a Short hook/banner carries alert/danger urgency (matches coral-red thumbnail accent)."""
+    tokens = re.findall(r"[A-Za-z]+", str(text or "").upper())
+    return any(tok in ALERT_KEYWORDS for tok in tokens)
 
 
 def generate_shorts_karaoke_ass(
@@ -186,6 +202,7 @@ def generate_shorts_karaoke_ass(
     """Generate high-retention 1-2 word karaoke ASS captions + clean non-overlapping opening hook banner."""
     out_ass.parent.mkdir(parents=True, exist_ok=True)
     font_family = detect_ass_font_family()
+    hook_primary = "&H003B4DFF" if is_danger_hook(hook_banner) else "&H003BD4FF"
 
     # ASS colors use &HAABBGGRR format:
     # Pure white: &H00FFFFFF, Viral gold (#FFD43B): &H003BD4FF, Alert coral-red (#FF4D3B): &H003B4DFF, Outline: &H000A0A0A
@@ -200,7 +217,7 @@ ScaledBorderAndShadow: yes
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Karaoke,{font_family},92,&H00FFFFFF,&H003BD4FF,&H000A0A0A,&H96000000,-1,0,0,0,100,100,1,0,1,7,3,2,64,64,535,1
 Style: TopPill,{font_family},34,&H003BD4FF,&H00FFFFFF,&H55101418,&H00000000,-1,0,0,0,100,100,2,0,3,14,0,8,60,60,150,1
-Style: HookBanner,{font_family},96,&H003BD4FF,&H00FFFFFF,&H00080A0F,&HA0000000,-1,0,0,0,100,100,2,0,1,9,4,8,56,56,300,1
+Style: HookBanner,{font_family},96,{hook_primary},&H00FFFFFF,&H00080A0F,&HA0000000,-1,0,0,0,100,100,2,0,1,9,4,8,56,56,300,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
