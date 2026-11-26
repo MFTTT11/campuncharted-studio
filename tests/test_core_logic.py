@@ -1379,3 +1379,189 @@ def test_pro_thumbnail_ai_discovery_generation_fallback_and_compositor(tmp_path:
     assert 1 <= len(derived.split()) <= 3
     assert derived == derived.upper()
 
+
+def test_hd_stock_photo_thumbnail_engine_filters_tourists_and_scores_best(tmp_path: Path) -> None:
+    import io
+    from PIL import Image, ImageDraw
+    from campuncharted.thumbnail_engine import (
+        build_photo_search_queries,
+        fetch_best_stock_photo_background,
+        resolve_thumbnail_background,
+        search_pexels_photos,
+        search_pixabay_photos,
+    )
+
+    def _make_jpeg_bytes(kind: str) -> bytes:
+        buf = io.BytesIO()
+        if kind == "epic_vivid":
+            # Crisp high-contrast turquoise glacier lake + sharp mountain ridges on the right half
+            im = Image.new("RGB", (1400, 900), (14, 34, 62))
+            dr = ImageDraw.Draw(im)
+            dr.rectangle([0, 0, 1400, 420], fill=(240, 165, 68))
+            dr.polygon([(520, 900), (880, 140), (1240, 900)], fill=(238, 245, 250))
+            dr.polygon([(820, 900), (1160, 190), (1400, 900)], fill=(205, 224, 242))
+            dr.rectangle([0, 560, 1400, 900], fill=(16, 196, 206))
+            for x in range(620, 1360, 36):
+                dr.line([(x, 570), (x + 22, 860)], fill=(255, 248, 210), width=5)
+        else:
+            # Dull low-contrast foggy flat gray image
+            im = Image.new("RGB", (1400, 900), (128, 132, 134))
+            dr = ImageDraw.Draw(im)
+            dr.rectangle([0, 450, 1400, 900], fill=(102, 108, 112))
+        im.save(buf, "JPEG", quality=92)
+        return buf.getvalue()
+
+    epic_bytes = _make_jpeg_bytes("epic_vivid")
+    dull_bytes = _make_jpeg_bytes("dull")
+
+    # 1. Query builder strips question filler words and prioritizes place + scenic nouns + curated queries
+    banff_queries = build_photo_search_queries(
+        title="Why Banff's Lakes Turn Turquoise: Inside Canada's Wildest Park",
+        place_label="BANFF NATIONAL PARK",
+        visual_queries=("banff turquoise glacier lake mountains", "canadian rockies moraine lake sunrise"),
+        format_type="documentary",
+    )
+    assert banff_queries
+    assert all("why" not in q.lower().split() and "wildest" not in q.lower().split() for q in banff_queries)
+    assert "banff" in banff_queries[0].lower() and "turquoise" in banff_queries[0].lower()
+
+    # Generic series labels must be ignored as place labels
+    short_queries = build_photo_search_queries(
+        title="Why Your 10-Foot Bear Bag Is Failing You",
+        place_label="CAMPING MISTAKE",
+        visual_queries=("grizzly bear forest wilderness",),
+        format_type="short",
+    )
+    assert all("mistake" not in q.lower() for q in short_queries)
+    assert "grizzly bear forest wilderness" in [q.lower() for q in short_queries]
+
+    # 2. Mock Pexels + Pixabay responses with tourist/portrait/canoe shots alongside pure wilderness shots
+    class FakeResp:
+        def __init__(self, status_code: int = 200, payload: dict | None = None, content: bytes = b"") -> None:
+            self.status_code = status_code
+            self._payload = payload or {}
+            self.content = content
+
+        def json(self):
+            return self._payload
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.urls_called: list[str] = []
+
+        def get(self, url: str, headers=None, params=None, timeout=15):
+            self.urls_called.append(url)
+            if "api.pexels.com/v1/search" in url:
+                return FakeResp(
+                    payload={
+                        "photos": [
+                            {
+                                "id": 101,
+                                "width": 4000,
+                                "height": 2667,
+                                "url": "https://www.pexels.com/photo/smiling-tourist-portrait-banff-101/",
+                                "alt": "Smiling woman tourist selfie by Banff lake",
+                                "src": {"large2x": "https://img.test/tourist_101.jpg"},
+                            },
+                            {
+                                "id": 102,
+                                "width": 4000,
+                                "height": 2667,
+                                "url": "https://www.pexels.com/photo/woman-sitting-in-canoe-banff-102/",
+                                "alt": "Woman sitting in a pink jacket in a canoe on a lake",
+                                "src": {"large2x": "https://img.test/canoe_102.jpg"},
+                            },
+                            {
+                                "id": 103,
+                                "width": 4000,
+                                "height": 2667,
+                                "url": "https://www.pexels.com/photo/foggy-mountain-banff-103/",
+                                "alt": "Foggy mountain lake in Banff",
+                                "src": {"large2x": "https://img.test/dull_103.jpg"},
+                            },
+                            {
+                                "id": 104,
+                                "width": 800,
+                                "height": 1200,
+                                "url": "https://www.pexels.com/photo/vertical-lake-104/",
+                                "alt": "Turquoise alpine lake",
+                                "src": {"large2x": "https://img.test/wrong_orient_104.jpg"},
+                            },
+                        ]
+                    }
+                )
+            if "pixabay.com/api/" in url:
+                return FakeResp(
+                    payload={
+                        "hits": [
+                            {
+                                "id": 201,
+                                "imageWidth": 5000,
+                                "imageHeight": 3333,
+                                "likes": 900,
+                                "tags": "tourist, selfie, couple, lake, banff",
+                                "pageURL": "https://pixabay.com/photos/tourist-couple-201/",
+                                "largeImageURL": "https://img.test/pix_tourist_201.jpg",
+                            },
+                            {
+                                "id": 202,
+                                "imageWidth": 5000,
+                                "imageHeight": 3333,
+                                "likes": 750,
+                                "tags": "banff, moraine lake, turquoise, glacier, mountains",
+                                "pageURL": "https://pixabay.com/photos/banff-turquoise-glacier-lake-202/",
+                                "largeImageURL": "https://img.test/epic_202.jpg",
+                            },
+                        ]
+                    }
+                )
+            if "epic_202.jpg" in url:
+                return FakeResp(content=epic_bytes)
+            return FakeResp(content=dull_bytes)
+
+    sess = FakeSession()
+    pex = search_pexels_photos("Banff turquoise lake", orientation="landscape", api_key="pex", session=sess)
+    assert [c.photo_id for c in pex] == ["103", "102"]  # 101 hard-rejected (tourist/selfie), 104 wrong orientation, 103 tier-0 before 102 tier-1!
+    assert pex[0].purity_tier == 0 and pex[1].purity_tier == 1
+
+    pix = search_pixabay_photos("Banff turquoise lake", orientation="landscape", api_key="pix", session=sess)
+    assert [c.photo_id for c in pix] == ["202"]  # 201 hard-rejected (tourist/selfie/couple)
+    assert pix[0].purity_tier == 0
+
+    # 3. fetch_best_stock_photo_background downloads & scores both providers and picks epic_202 over dull_103 / canoe_102
+    best = fetch_best_stock_photo_background(
+        tmp_path / "photo_pick",
+        title="Why Banff's Lakes Turn Turquoise: Inside Canada's Wildest Park",
+        place_label="BANFF NATIONAL PARK",
+        format_type="documentary",
+        pexels_api_key="pex",
+        pixabay_api_key="pix",
+        session=sess,
+    )
+    assert best is not None and best.is_file()
+    assert "pixabay_202" in best.name
+
+    # 4. resolve_thumbnail_background falls back cleanly from failed Gemini AI (429) -> 4K stock_photo
+    class FailingAIClient:
+        def __init__(self) -> None:
+            self.models = self
+
+        def list(self):
+            return [SimpleNamespace(name="models/gemini-2.5-flash-image", supported_actions=["generateContent"])]
+
+        def generate_content(self, **kwargs):
+            raise RuntimeError("429 RESOURCE_EXHAUSTED")
+
+    bg_path, source_kind = resolve_thumbnail_background(
+        work_dir=tmp_path / "resolve_photo",
+        title="Why Banff's Lakes Turn Turquoise",
+        place_label="BANFF NATIONAL PARK",
+        format_type="documentary",
+        api_key="dummy",
+        pexels_api_key="pex",
+        pixabay_api_key="pix",
+        client=FailingAIClient(),
+        http_session=sess,
+    )
+    assert source_kind == "stock_photo"
+    assert bg_path.is_file() and "pixabay_202" in bg_path.name

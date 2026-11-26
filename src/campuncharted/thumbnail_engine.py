@@ -1,7 +1,9 @@
-"""High-CTR Pro Thumbnail Studio: Gemini/Imagen AI scene generation + broadcast Pillow/Numpy compositor."""
+"""High-CTR Pro Thumbnail Studio: Gemini/Imagen AI + 4K Stock Photo Engine + broadcast Pillow/Numpy compositor."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from dataclasses import dataclass
 import io
 import re
 import subprocess
@@ -9,11 +11,14 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import requests
 from google import genai
 from google.genai import types
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageStat
 
 from .audio_engine import probe_audio_duration
+from .config import USER_AGENT
+from .media_engine import sanitize_query
 from .subtitle_engine import detect_bold_font_path
 
 # Preferred Gemini native image & Imagen models (auto-discovered dynamically via models.list)
@@ -33,6 +38,94 @@ DANGER_HOOK_WORDS = frozenset(
         "KILL", "FLOOD", "HYPOTHERMIA", "DEATH", "SILENT", "USELESS", "TOXIC", "BROKEN",
     }
 )
+
+# Always reject text overlays, indoor/urban shots, posed portraits, selfies, and tourist crowds
+HARD_PHOTO_REJECT_RE = re.compile(
+    r"\b("
+    r"portrait|selfie|face|faces|tourist|tourists|smiling|smile|posing|pose|model|"
+    r"crowd|group|family|couple|friends|wedding|bride|groom|baby|kid|kids|child|children|"
+    r"city|town|street|building|buildings|hotel|resort|house|apartment|architecture|"
+    r"car|cars|vehicle|truck|van|bus|motorcycle|traffic|highway|"
+    r"sign|signs|text|logo|watermark|banner|poster|phone|laptop|screen|"
+    r"indoor|interior|room|office|studio|dog|dogs|pet|pets|cat"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# Strongly prefer pure untouched wilderness/nature scenes (no people, boats, roads, or clothes)
+SOFT_PHOTO_REJECT_RE = re.compile(
+    r"\b("
+    r"woman|women|man|men|people|person|persons|girl|girls|boy|boys|lady|gentleman|guy|"
+    r"hiker|hikers|backpacker|backpackers|traveler|travelers|camper|campers|"
+    r"canoe|canoes|kayak|kayaks|boat|boats|yacht|ship|ferry|paddle|rowing|raft|dock|pier|"
+    r"road|bridge|train|bike|bicycle|village|"
+    r"hands|hand|holding|standing|sitting|walking|wearing|jacket|coat|hat|glasses|sunglasses|horse"
+    r")\b",
+    re.IGNORECASE,
+)
+
+GENERIC_SERIES_LABELS = frozenset(
+    {
+        "CAMPUNCHARTED",
+        "DOCUMENTARY",
+        "CAMP MISTAKES",
+        "CAMPING MISTAKE",
+        "GEAR AND HACKS",
+        "EXTREME WEATHER",
+        "EXTREME WEATHER NATURE",
+        "TURKEY AND EURASIA",
+        "TURKEY AND EURASIA HIDDEN",
+        "WILD STAYS",
+        "WILDERNESS TRUTH",
+        "SURVIVAL RULE",
+        "WINTER SURVIVAL RULE",
+        "OUTDOOR SAFETY",
+    }
+)
+
+PHOTO_QUERY_STOPWORDS = frozenset(
+    {
+        "a", "an", "the", "and", "or", "but", "if", "in", "on", "at", "to", "for", "of", "by",
+        "why", "how", "what", "when", "where", "who", "which", "this", "that", "these", "those",
+        "your", "you", "their", "our", "its", "can", "could", "will", "would", "should", "must",
+        "is", "are", "was", "were", "be", "been", "being", "do", "does", "did", "dont", "cant",
+        "has", "have", "had", "into", "from", "with", "without", "about", "inside", "outside",
+        "under", "over", "above", "below", "between", "during", "before", "after", "through",
+        "never", "always", "still", "actually", "really", "just", "only", "even", "most", "more",
+        "turn", "turns", "turning", "make", "makes", "making", "get", "gets", "keep", "keeps",
+        "fail", "fails", "failing", "freeze", "freezes", "freezing", "look", "looking", "see",
+        "one", "two", "three", "five", "ten", "foot", "feet", "dollar", "dollars", "minutes",
+        "seconds", "hours", "days", "year", "years", "wildest", "hidden", "secret", "secrets",
+        "truth", "shocking", "surprising", "deadly", "fatal", "silent", "worst", "best", "rule",
+        "rules", "mistake", "mistakes", "hack", "hacks", "tip", "tips", "reason", "reasons",
+        "physics", "science", "behind", "explained", "guide", "campers", "hikers", "backpackers",
+        "people", "humans", "experienced", "seasoned", "wise", "ordinary", "single", "completely",
+    }
+)
+
+SCENE_PRIORITY_NOUNS = frozenset(
+    {
+        "turquoise", "glacier", "glacial", "lake", "lakes", "mountain", "mountains", "alpine",
+        "waterfall", "waterfalls", "canyon", "desert", "dunes", "volcano", "forest", "pine",
+        "snow", "winter", "aurora", "campfire", "fire", "tent", "bear", "grizzly", "river",
+        "cliff", "cliffs", "fjord", "valley", "ridge", "storm", "lightning", "fog", "mist",
+        "ice", "cave", "island", "ocean", "coast", "redwood", "sequoia", "arch", "geyser",
+    }
+)
+
+
+@dataclass
+class StockPhotoCandidate:
+    provider: str
+    photo_id: str
+    download_url: str
+    page_url: str
+    width: int
+    height: int
+    description: str
+    purity_tier: int  # 0 = zero people/boats/roads, 1 = outdoor fallback
+    query_rank: int
+    popularity: int = 0
 
 
 def _is_danger_hook(hook_text: str) -> bool:
@@ -141,7 +234,7 @@ def _validate_image_bytes(raw_bytes: bytes, out_path: Path) -> Path | None:
         with Image.open(io.BytesIO(raw_bytes)) as img:
             rgb = img.convert("RGB")
             w, h = rgb.size
-            if w < 640 or h < 360:
+            if min(w, h) < 360 or max(w, h) < 640:
                 return None
             stat = ImageStat.Stat(rgb.resize((240, 135), Image.Resampling.BILINEAR))
             brightness = sum(stat.mean) / 3.0
@@ -233,8 +326,291 @@ def generate_ai_thumbnail_background(
             print(f"[THUMB] AI image model '{model_name}' unavailable ({str(err)[:130]}); trying next...", flush=True)
             continue
 
-    print("[THUMB] AI thumbnail background unavailable; falling back to cleanest video frame.", flush=True)
+    print("[THUMB] AI thumbnail background unavailable; trying 4K stock photography next.", flush=True)
     return None
+
+
+def _normalize_photo_meta_text(raw: str) -> str:
+    return re.sub(r"[-_/,.:;]+", " ", str(raw or "")).lower()
+
+
+def _classify_photo_purity(meta_text: str) -> int | None:
+    """Return 0 for pure wilderness, 1 for outdoor fallback, or None for rejected tourist/urban/text shots."""
+    normalized = _normalize_photo_meta_text(meta_text)
+    if HARD_PHOTO_REJECT_RE.search(normalized):
+        return None
+    if SOFT_PHOTO_REJECT_RE.search(normalized):
+        return 1
+    return 0
+
+
+def _extract_clean_keywords(text: str, *, max_words: int = 4) -> list[str]:
+    tokens = re.findall(r"[A-Za-z]{3,}", str(text or "").lower())
+    seen: set[str] = set()
+    priority: list[str] = []
+    regular: list[str] = []
+    for tok in tokens:
+        if tok in PHOTO_QUERY_STOPWORDS or tok in seen:
+            continue
+        if SOFT_PHOTO_REJECT_RE.fullmatch(tok) or HARD_PHOTO_REJECT_RE.fullmatch(tok):
+            continue
+        seen.add(tok)
+        if tok in SCENE_PRIORITY_NOUNS:
+            priority.append(tok)
+        else:
+            regular.append(tok)
+    return (priority + regular)[:max_words]
+
+
+def _singularize_scene_noun(word: str) -> str:
+    if word in {"lakes", "mountains", "glaciers", "waterfalls", "cliffs", "canyons", "forests", "rivers", "peaks", "trees"}:
+        return word[:-1]
+    return word
+
+
+def build_photo_search_queries(
+    *,
+    title: str,
+    subject: str = "",
+    place_label: str = "",
+    visual_queries: Sequence[str] = (),
+    format_type: str = "documentary",
+) -> list[str]:
+    """Build 2-4 crisp 2-4 word photography queries prioritizing place + scenic nouns (never raw question prose)."""
+    queries: list[str] = []
+    seen: set[str] = set()
+
+    def _add(raw_q: str, *, max_words: int = 4) -> None:
+        cleaned = sanitize_query(raw_q, max_len=55)
+        words = [
+            w for w in cleaned.split()
+            if not HARD_PHOTO_REJECT_RE.fullmatch(w) and not SOFT_PHOTO_REJECT_RE.fullmatch(w)
+        ]
+        words = words[:max_words]
+        if len(words) < 2:
+            return
+        q = " ".join(words)
+        key = q.lower()
+        if key not in seen:
+            seen.add(key)
+            queries.append(q)
+
+    combined_text = f"{title} {subject}"
+    scene_nouns: list[str] = []
+    for tok in re.findall(r"[A-Za-z]{3,}", combined_text.lower()):
+        if tok in SCENE_PRIORITY_NOUNS:
+            norm = _singularize_scene_noun(tok)
+            if norm not in scene_nouns:
+                scene_nouns.append(norm)
+
+    # 1. Explicit non-generic place label (e.g., "Banff National Park" -> "Banff lake turquoise" + "Banff National Park")
+    raw_place = str(place_label or "").strip()
+    extra_place_q = ""
+    if raw_place and raw_place.upper() not in GENERIC_SERIES_LABELS:
+        clean_place = sanitize_query(raw_place, max_len=45)
+        short_place = re.sub(
+            r"\b(national park|national forest|state park|national monument|region)\b",
+            "",
+            clean_place,
+            flags=re.IGNORECASE,
+        )
+        short_place = " ".join(short_place.split()) or clean_place
+        if scene_nouns:
+            _add(f"{short_place} {' '.join(scene_nouns[:2])}", max_words=4)
+        if visual_queries:
+            _add(str(visual_queries[0]), max_words=4)
+        if len(clean_place.split()) >= 2:
+            _add(clean_place, max_words=4)
+        extra_place_q = f"{short_place} mountain landscape" if "mountain" not in short_place.lower() else f"{short_place} landscape"
+
+    # 2. Curated topic/beat visual queries (trimmed to crisp photography keywords)
+    for vq in visual_queries or ():
+        _add(str(vq), max_words=4)
+        if len(queries) >= 4:
+            break
+
+    if extra_place_q and len(queries) < 4:
+        _add(extra_place_q, max_words=4)
+
+    # 3. Clean visual keywords extracted from title + subject (stripped of "Why/How/Failing/10-Foot" clickbait filler)
+    if len(queries) < 4:
+        kw = _extract_clean_keywords(combined_text, max_words=4)
+        if kw:
+            if len(kw) == 1:
+                kw.append("wilderness")
+            _add(" ".join(kw), max_words=4)
+
+    # 4. Scenic wilderness fallback query (guaranteed high-res hits if niche query returns empty)
+    fallback_q = "dramatic wilderness mountain nature" if format_type == "short" else "dramatic mountain wilderness landscape"
+    if fallback_q.lower() not in seen:
+        queries.append(fallback_q)
+    return queries[:5]
+
+
+def search_pexels_photos(
+    query: str,
+    *,
+    orientation: str,
+    api_key: str,
+    per_page: int = 15,
+    query_rank: int = 0,
+    session: Any | None = None,
+) -> list[StockPhotoCandidate]:
+    """Search Pexels 4K Photography API and filter out portraits, tourists, boats, urban scenes, and text."""
+    if not api_key:
+        return []
+    orient = "portrait" if orientation == "portrait" else "landscape"
+    clean_q = sanitize_query(query, max_len=65)
+    client = session or requests.Session()
+    try:
+        resp = client.get(
+            "https://api.pexels.com/v1/search",
+            headers={"Authorization": api_key, "User-Agent": USER_AGENT},
+            params={"query": clean_q, "orientation": orient, "size": "large", "per_page": per_page},
+            timeout=15,
+        )
+    except Exception:
+        return []
+    if getattr(resp, "status_code", 0) != 200:
+        return []
+
+    try:
+        payload = resp.json()
+    except Exception:
+        return []
+
+    out: list[StockPhotoCandidate] = []
+    for photo in payload.get("photos") or []:
+        try:
+            w = int(photo.get("width") or 0)
+            h = int(photo.get("height") or 0)
+        except (TypeError, ValueError):
+            continue
+        if orient == "portrait":
+            if h < 1200 or w < 720 or h <= w:
+                continue
+        else:
+            if w < 1200 or h < 675 or w <= h:
+                continue
+
+        alt = str(photo.get("alt") or "")
+        page_url = str(photo.get("url") or "")
+        purity = _classify_photo_purity(f"{alt} {page_url}")
+        if purity is None:
+            continue
+
+        src = photo.get("src") or {}
+        dl_url = str(
+            src.get("large2x")
+            or src.get(orient)
+            or src.get("large")
+            or src.get("original")
+            or ""
+        ).strip()
+        if not dl_url:
+            continue
+
+        out.append(
+            StockPhotoCandidate(
+                provider="Pexels",
+                photo_id=str(photo.get("id") or ""),
+                download_url=dl_url,
+                page_url=page_url,
+                width=w,
+                height=h,
+                description=f"{alt} {page_url}".strip(),
+                purity_tier=purity,
+                query_rank=query_rank,
+                popularity=0,
+            )
+        )
+    out.sort(key=lambda c: c.purity_tier)
+    return out
+
+
+def search_pixabay_photos(
+    query: str,
+    *,
+    orientation: str,
+    api_key: str,
+    per_page: int = 15,
+    query_rank: int = 0,
+    session: Any | None = None,
+) -> list[StockPhotoCandidate]:
+    """Search Pixabay Photography API and filter out portraits, tourists, boats, urban scenes, and text."""
+    if not api_key:
+        return []
+    orient = "portrait" if orientation == "portrait" else "landscape"
+    clean_q = sanitize_query(query, max_len=65)
+    client = session or requests.Session()
+    try:
+        resp = client.get(
+            "https://pixabay.com/api/",
+            headers={"User-Agent": USER_AGENT},
+            params={
+                "key": api_key,
+                "q": clean_q,
+                "image_type": "photo",
+                "orientation": "vertical" if orient == "portrait" else "horizontal",
+                "safesearch": "true",
+                "order": "popular",
+                "min_width": 720 if orient == "portrait" else 1200,
+                "min_height": 1200 if orient == "portrait" else 675,
+                "per_page": per_page,
+            },
+            timeout=15,
+        )
+    except Exception:
+        return []
+    if getattr(resp, "status_code", 0) != 200:
+        return []
+
+    try:
+        payload = resp.json()
+    except Exception:
+        return []
+
+    out: list[StockPhotoCandidate] = []
+    for hit in payload.get("hits") or []:
+        try:
+            w = int(hit.get("imageWidth") or hit.get("webformatWidth") or 0)
+            h = int(hit.get("imageHeight") or hit.get("webformatHeight") or 0)
+            likes = int(hit.get("likes") or 0)
+        except (TypeError, ValueError):
+            continue
+        if orient == "portrait":
+            if h < 1200 or w < 720 or h <= w:
+                continue
+        else:
+            if w < 1200 or h < 675 or w <= h:
+                continue
+
+        tags = str(hit.get("tags") or "")
+        page_url = str(hit.get("pageURL") or "")
+        purity = _classify_photo_purity(f"{tags} {page_url}")
+        if purity is None:
+            continue
+
+        dl_url = str(hit.get("largeImageURL") or hit.get("fullHDURL") or hit.get("webformatURL") or "").strip()
+        if not dl_url:
+            continue
+
+        out.append(
+            StockPhotoCandidate(
+                provider="Pixabay",
+                photo_id=str(hit.get("id") or ""),
+                download_url=dl_url,
+                page_url=page_url,
+                width=w,
+                height=h,
+                description=f"{tags} {page_url}".strip(),
+                purity_tier=purity,
+                query_rank=query_rank,
+                popularity=likes,
+            )
+        )
+    out.sort(key=lambda c: (c.purity_tier, -c.popularity))
+    return out
 
 
 def _score_frame(image_path: Path) -> float:
@@ -262,6 +638,232 @@ def _score_frame(image_path: Path) -> float:
             brightness_penalty = (brightness - 220) * 1.5
 
         return (sharpness * 1.6) + (saturation * 0.55) + (contrast * 0.85) - brightness_penalty
+
+
+def _region_energy(rgb_crop: Image.Image) -> float:
+    hsv = rgb_crop.convert("HSV")
+    edges = rgb_crop.convert("L").filter(ImageFilter.FIND_EDGES)
+    rgb_stat = ImageStat.Stat(rgb_crop)
+    hsv_stat = ImageStat.Stat(hsv)
+    edge_stat = ImageStat.Stat(edges)
+    return (edge_stat.mean[0] * 1.5) + (hsv_stat.mean[1] * 0.5) + ((sum(rgb_stat.stddev) / 3.0) * 0.8)
+
+
+def _score_thumbnail_photo(
+    image_path: Path,
+    *,
+    is_short: bool,
+    purity_tier: int = 0,
+    query_rank: int = 0,
+    keyword_hits: int = 0,
+) -> float:
+    """Score a candidate photograph for CTR visual energy, composition fit, purity, and topic relevance."""
+    base = _score_frame(image_path)
+    with Image.open(image_path) as raw:
+        rgb_full = raw.convert("RGB")
+        target = (180, 320) if is_short else (320, 180)
+        rgb = rgb_full.resize(target, Image.Resampling.BILINEAR)
+        hsv_stat = ImageStat.Stat(rgb.convert("HSV"))
+        rgb_stat = ImageStat.Stat(rgb)
+
+        brightness = sum(rgb_stat.mean) / 3.0
+        contrast = sum(rgb_stat.stddev) / 3.0
+        saturation = hsv_stat.mean[1]
+
+        # Mildly penalize dull/foggy/murky photos so vivid high-CTR scenes win
+        dull_penalty = 0.0
+        if brightness < 45:
+            dull_penalty += (45 - brightness) * 0.6
+        if contrast < 28:
+            dull_penalty += (28 - contrast) * 0.9
+        if saturation < 32:
+            dull_penalty += (32 - saturation) * 0.5
+
+        # Composition bonus aligned with our typography overlay zones
+        comp_bonus = 0.0
+        if is_short:
+            # 9:16 hero sits in upper-middle window (15%..58%) above lower-third hook text
+            hero = rgb.crop((18, 48, 162, 186))
+            hero_energy = _region_energy(hero)
+            comp_bonus = min(12.0, hero_energy * 0.08)
+        else:
+            # 16:9 text sits on left 55%, bright hero shines on right 50%
+            left_energy = _region_energy(rgb.crop((0, 0, 160, 180)))
+            right_energy = _region_energy(rgb.crop((160, 0, 320, 180)))
+            if right_energy >= left_energy * 0.85:
+                comp_bonus = min(12.0, (right_energy / max(1.0, left_energy)) * 6.0)
+            else:
+                comp_bonus = min(6.0, right_energy * 0.05)
+
+    purity_bonus = 18.0 if purity_tier == 0 else 0.0
+    rank_bonus = max(0.0, 10.0 - query_rank * 3.0)
+    relevance_bonus = min(12.0, keyword_hits * 4.0)
+    return base + comp_bonus + purity_bonus + rank_bonus + relevance_bonus - dull_penalty
+
+
+def _candidate_keyword_hits(candidate: StockPhotoCandidate, topic_tokens: set[str]) -> int:
+    if not topic_tokens:
+        return 0
+    meta_tokens = set(re.findall(r"[a-z]{3,}", _normalize_photo_meta_text(candidate.description)))
+    return len(meta_tokens & topic_tokens)
+
+
+def fetch_best_stock_photo_background(
+    work_dir: Path,
+    *,
+    title: str,
+    subject: str = "",
+    place_label: str = "",
+    visual_queries: Sequence[str] = (),
+    format_type: str = "documentary",
+    pexels_api_key: str = "",
+    pixabay_api_key: str = "",
+    max_download: int = 8,
+    session: Any | None = None,
+) -> Path | None:
+    """Search Pexels + Pixabay 4K photography APIs, filter tourists/portraits, and score top candidates."""
+    if not pexels_api_key and not pixabay_api_key:
+        return None
+
+    is_short = format_type == "short"
+    orient = "portrait" if is_short else "landscape"
+    queries = build_photo_search_queries(
+        title=title,
+        subject=subject,
+        place_label=place_label,
+        visual_queries=visual_queries,
+        format_type=format_type,
+    )
+    if not queries:
+        return None
+
+    topic_tokens = set(_extract_clean_keywords(f"{place_label} {title} {subject}", max_words=10))
+    client = session or requests.Session()
+
+    all_candidates: list[StockPhotoCandidate] = []
+    seen_keys: set[tuple[str, str]] = set()
+    primary_queries = queries[:-1] if len(queries) > 1 else queries
+    fallback_query = queries[-1] if len(queries) > 1 else None
+
+    def _collect(q_list: Sequence[str], start_rank: int = 0) -> None:
+        for offset, q in enumerate(q_list):
+            rank = start_rank + offset
+            batch: list[StockPhotoCandidate] = []
+            if pexels_api_key:
+                batch.extend(
+                    search_pexels_photos(
+                        q,
+                        orientation=orient,
+                        api_key=pexels_api_key,
+                        per_page=15,
+                        query_rank=rank,
+                        session=client,
+                    )
+                )
+            if pixabay_api_key:
+                batch.extend(
+                    search_pixabay_photos(
+                        q,
+                        orientation=orient,
+                        api_key=pixabay_api_key,
+                        per_page=15,
+                        query_rank=rank,
+                        session=client,
+                    )
+                )
+            for cand in batch:
+                key = (cand.provider, cand.photo_id or cand.download_url)
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    all_candidates.append(cand)
+            pure_count = sum(1 for c in all_candidates if c.purity_tier == 0)
+            if pure_count >= 12 and offset >= 1:
+                break
+
+    _collect(primary_queries, start_rank=0)
+    if len(all_candidates) < 2 and fallback_query:
+        _collect([fallback_query], start_rank=len(primary_queries))
+
+    if not all_candidates:
+        print(f"[THUMB] Stock photo search returned 0 filtered candidates for queries={queries[:3]}", flush=True)
+        return None
+
+    # Sort candidates within each provider and interleave Pexels + Pixabay for head-to-head visual scoring
+    def _rank_key(c: StockPhotoCandidate) -> tuple[int, int, int, int]:
+        return (
+            c.purity_tier,
+            c.query_rank,
+            -_candidate_keyword_hits(c, topic_tokens),
+            -c.popularity,
+        )
+
+    interleaved: list[StockPhotoCandidate] = []
+    for tier in (0, 1):
+        pexels_pool = sorted(
+            [c for c in all_candidates if c.provider == "Pexels" and c.purity_tier == tier],
+            key=_rank_key,
+        )
+        pixabay_pool = sorted(
+            [c for c in all_candidates if c.provider == "Pixabay" and c.purity_tier == tier],
+            key=_rank_key,
+        )
+        for i in range(max(len(pexels_pool), len(pixabay_pool))):
+            if i < len(pexels_pool):
+                interleaved.append(pexels_pool[i])
+            if i < len(pixabay_pool):
+                interleaved.append(pixabay_pool[i])
+
+    photos_dir = work_dir / "thumb_photo_candidates"
+    photos_dir.mkdir(parents=True, exist_ok=True)
+
+    best_path: Path | None = None
+    best_cand: StockPhotoCandidate | None = None
+    best_score = float("-inf")
+    evaluated = 0
+
+    for idx, cand in enumerate(interleaved):
+        if evaluated >= max_download:
+            break
+        try:
+            resp = client.get(cand.download_url, headers={"User-Agent": USER_AGENT}, timeout=15)
+            if getattr(resp, "status_code", 0) != 200:
+                continue
+            raw_bytes = getattr(resp, "content", b"")
+            if not raw_bytes or len(raw_bytes) > 12_000_000:
+                continue
+        except Exception:
+            continue
+
+        out_png = photos_dir / f"cand_{idx:02d}_{cand.provider.lower()}_{cand.photo_id or idx}.png"
+        saved = _validate_image_bytes(raw_bytes, out_png)
+        if saved is None:
+            continue
+
+        evaluated += 1
+        hits = _candidate_keyword_hits(cand, topic_tokens)
+        score = _score_thumbnail_photo(
+            saved,
+            is_short=is_short,
+            purity_tier=cand.purity_tier,
+            query_rank=cand.query_rank,
+            keyword_hits=hits,
+        )
+        if score > best_score:
+            best_score = score
+            best_path = saved
+            best_cand = cand
+
+    if best_path is not None and best_cand is not None:
+        print(
+            f"[THUMB] Selected 4K stock photo: {best_cand.provider} #{best_cand.photo_id} "
+            f"({best_cand.width}x{best_cand.height}, tier={best_cand.purity_tier}, score={best_score:.1f}) "
+            f"from {evaluated} scored candidates | queries={queries[:3]}",
+            flush=True,
+        )
+        return best_path
+
+    print("[THUMB] Downloaded stock photo candidates failed visual QC; falling back to video frame.", flush=True)
+    return None
 
 
 def extract_best_frame(mp4_path: Path, work_dir: Path, *, sample_count: int = 7) -> Path:
@@ -314,11 +916,16 @@ def resolve_thumbnail_background(
     format_type: str = "documentary",
     mood: str = "EPIC_DISCOVERY",
     api_key: str = "",
+    pexels_api_key: str = "",
+    pixabay_api_key: str = "",
+    place_label: str = "",
+    visual_queries: Sequence[str] = (),
     fallback_video: Path | None = None,
     sample_count: int = 7,
     client: Any | None = None,
+    http_session: Any | None = None,
 ) -> tuple[Path, str]:
-    """Return `(background_image_path, source_kind)` preferring bespoke AI art with video-frame fallback."""
+    """Return `(background_image_path, source_kind)` with 3-tier priority: AI -> 4K Stock Photo -> Video Frame."""
     ai_path = generate_ai_thumbnail_background(
         work_dir / f"ai_thumb_bg_{format_type}.png",
         title=title,
@@ -331,9 +938,24 @@ def resolve_thumbnail_background(
     )
     if ai_path is not None and ai_path.is_file():
         return ai_path, "ai"
+
+    photo_path = fetch_best_stock_photo_background(
+        work_dir,
+        title=title,
+        subject=subject,
+        place_label=place_label,
+        visual_queries=visual_queries,
+        format_type=format_type,
+        pexels_api_key=pexels_api_key,
+        pixabay_api_key=pixabay_api_key,
+        session=http_session,
+    )
+    if photo_path is not None and photo_path.is_file():
+        return photo_path, "stock_photo"
+
     if fallback_video is not None and fallback_video.is_file():
         return extract_best_frame(fallback_video, work_dir, sample_count=sample_count), "video_frame"
-    raise RuntimeError("Could not obtain thumbnail background (AI generation failed and no fallback video provided).")
+    raise RuntimeError("Could not obtain thumbnail background (AI and 4K stock photos unavailable and no fallback video provided).")
 
 
 def _load_truetype(size: int) -> ImageFont.FreeTypeFont:
