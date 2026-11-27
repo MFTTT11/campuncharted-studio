@@ -1,6 +1,6 @@
 {
   "quota": {
-    "2026-11-26": 1700
+    "2026-11-27": 400
   },
   "videos": {
     "KNkAeiRp3so": {
@@ -1060,7 +1060,7 @@
         "tr"
       ],
       "pinned_comment": "Who actually carries a trivet backpacking instead of just using a flat rock?",
-      "comment_posted": false,
+      "comment_posted": true,
       "publish_at": "2026-11-26T23:15:00Z",
       "queued_at": "2026-11-26T20:19:21.615251+00:00"
     },
@@ -1099,7 +1099,9 @@
           "Skip these mandatory safety checks and"
         ]
       ],
-      "done_langs": [],
+      "done_langs": [
+        "en"
+      ],
       "localized_langs": [
         "de",
         "es",
@@ -1112,5 +1114,5 @@
       "queued_at": "2026-11-26T21:06:38.422873+00:00"
     }
   },
-  "updated_at": "2026-11-26T21:06:45.212469+00:00"
+  "updated_at": "2026-11-27T01:53:02.161629+00:00"
 }
