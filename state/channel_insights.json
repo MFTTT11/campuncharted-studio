@@ -1,54 +1,60 @@
 {
   "period": {
-    "start": "2026-10-25",
-    "end": "2026-11-24"
+    "start": "2026-10-26",
+    "end": "2026-11-25"
   },
   "channel_stats": {
-    "subscribers": 28,
-    "total_views": 37452,
-    "video_count": 249
+    "subscribers": 29,
+    "total_views": 39030,
+    "video_count": 252
   },
   "rolling_30d": {
-    "views": 4213,
-    "watch_minutes": 727.0,
+    "views": 6646,
+    "watch_minutes": 1172.0,
     "avg_view_duration_sec": 23.0,
-    "avg_view_percentage": 44.9,
-    "subscribers_gained": 24,
+    "avg_view_percentage": 53.6,
+    "subscribers_gained": 26,
     "subscribers_lost": 22,
-    "net_subscribers": 2,
-    "likes": 38,
-    "comments": 3
+    "net_subscribers": 4,
+    "likes": 66,
+    "comments": 7
   },
   "series_metrics": {
     "WILD_STAYS": {
       "count": 1,
-      "avg_views": 1219.0,
-      "avg_avp": 64.4,
+      "avg_views": 1237.0,
+      "avg_avp": 64.9,
       "net_subs": 0
     },
     "CAMP_MISTAKES": {
-      "count": 1,
-      "avg_views": 548.0,
-      "avg_avp": 40.1,
-      "net_subs": 0
+      "count": 2,
+      "avg_views": 813.0,
+      "avg_avp": 59.6,
+      "net_subs": 2
     },
     "GEAR_AND_HACKS": {
+      "count": 2,
+      "avg_views": 551.5,
+      "avg_avp": 72.1,
+      "net_subs": 0
+    },
+    "TURKEY_AND_EURASIA_HIDDEN": {
       "count": 1,
-      "avg_views": 472.0,
-      "avg_avp": 75.0,
+      "avg_views": 569.0,
+      "avg_avp": 73.9,
       "net_subs": 0
     },
     "EXTREME_WEATHER_NATURE": {
       "count": 1,
-      "avg_views": 238.0,
-      "avg_avp": 61.0,
+      "avg_views": 408.0,
+      "avg_avp": 61.8,
       "net_subs": 0
     }
   },
   "series_weights": {
-    "CAMP_MISTAKES": 0.3,
+    "CAMP_MISTAKES": 0.2899,
     "WILD_STAYS": 0.25,
-    "GEAR_AND_HACKS": 0.2,
+    "GEAR_AND_HACKS": 0.2101,
     "EXTREME_WEATHER_NATURE": 0.15,
     "TURKEY_AND_EURASIA_HIDDEN": 0.1
   },
@@ -57,16 +63,43 @@
       "video_id": "TH7tpGQNVfQ",
       "title": "Why Sailors Feared Namibia's Skeleton Coast",
       "series": "WILD_STAYS",
-      "views": 1219,
-      "avp": 64.4,
-      "avd": 23.0,
+      "views": 1237,
+      "avp": 64.9,
+      "avd": 24.0,
+      "net_subs": 0
+    },
+    {
+      "video_id": "4Mkitwsv_uE",
+      "title": "Your Sleeping Bag Is Useless Without Ground Insulation",
+      "series": "CAMP_MISTAKES",
+      "views": 1077,
+      "avp": 79.1,
+      "avd": 27.0,
+      "net_subs": 2
+    },
+    {
+      "video_id": "K2wRMQHo-XQ",
+      "title": "Why Tight Space Blankets Can Still Freeze You",
+      "series": "GEAR_AND_HACKS",
+      "views": 629,
+      "avp": 69.4,
+      "avd": 17.0,
+      "net_subs": 0
+    },
+    {
+      "video_id": "eM9KEwi1S1M",
+      "title": "The Mountain Lake Born From a Catastrophic Earthquake",
+      "series": "TURKEY_AND_EURASIA_HIDDEN",
+      "views": 569,
+      "avp": 73.9,
+      "avd": 24.0,
       "net_subs": 0
     },
     {
       "video_id": "KNkAeiRp3so",
       "title": "Why Outdoor Guides Call Cotton the Silent Killer",
       "series": "CAMP_MISTAKES",
-      "views": 548,
+      "views": 549,
       "avp": 40.1,
       "avd": 17.0,
       "net_subs": 0
@@ -75,8 +108,8 @@
       "video_id": "tfYyd6e93jM",
       "title": "Why Wise Campers Collect Pine Resin in Rain",
       "series": "GEAR_AND_HACKS",
-      "views": 472,
-      "avp": 75.0,
+      "views": 474,
+      "avp": 74.9,
       "avd": 32.0,
       "net_subs": 0
     },
@@ -84,8 +117,8 @@
       "video_id": "bkmbj6XY8LA",
       "title": "Why You Must Never Camp on a Canyon Floor",
       "series": "EXTREME_WEATHER_NATURE",
-      "views": 238,
-      "avp": 61.0,
+      "views": 408,
+      "avp": 61.8,
       "avd": 17.0,
       "net_subs": 0
     },
@@ -97,40 +130,14 @@
       "avp": 103.2,
       "avd": 30.0,
       "net_subs": 0
-    },
-    {
-      "video_id": "VKxUcW8LSnQ",
-      "title": "Daintree, Australia: Ancient World Heritage Rainforest | Far North... #Shorts #Camp",
-      "series": "LEGACY",
-      "views": 116,
-      "avp": 80.1,
-      "avd": 12.0,
-      "net_subs": 0
-    },
-    {
-      "video_id": "Gdz0SchEX7s",
-      "title": "Konya: Exploring Central Anatolian Plateau History | Konya... #Shorts #Camp",
-      "series": "LEGACY",
-      "views": 68,
-      "avp": 28.0,
-      "avd": 20.0,
-      "net_subs": 0
-    },
-    {
-      "video_id": "CB2i0kLWHEc",
-      "title": "Ranomafana National Park: Exploring Madagascar's Rainforest Trails... #Shorts #Camp",
-      "series": "LEGACY",
-      "views": 65,
-      "avp": 65.0,
-      "avd": 9.0,
-      "net_subs": 0
     }
   ],
-  "summary_guidance": "Last 30d channel performance: 4213 views, 44.9% average view percentage, +2 net subscribers. Top-performing series right now: GEAR_AND_HACKS (75% avg AVP, 472 avg views). Keep Shorts ultra-tight (20-26s, 55-78 words), hit with a <=10-word danger/curiosity hook in Beat 1, deliver a save-worthy survival or gear fix, and end on a seamless loop lead-in with ZERO closing questions. Live YouTube trends: Rapid emergency tactile crafting hacks (like improvised hand protection for thorns or extreme elements) drive massive short-form retention through fast, highly visual problem-solving in the first 3 seconds. | Stormproofing gear demonstrations featuring chemical or physical modifications (like waterproofing matches or treating tinder) create strong curiosity loops regarding failure prevention.",
+  "summary_guidance": "Last 30d channel performance: 6646 views, 53.6% average view percentage, +4 net subscribers. Top-performing series right now: TURKEY_AND_EURASIA_HIDDEN (74% avg AVP, 569 avg views). Keep Shorts ultra-tight (20-26s, 55-78 words), hit with a <=10-word danger/curiosity hook in Beat 1, deliver a save-worthy survival or gear fix, and end on a seamless loop lead-in with ZERO closing questions. Live YouTube trends: High-urgency DIY survival hacks like stormproof matches and chemical fire-starting (foil and batteries) trigger millions of views through rapid, satisfying visual payoffs. | Counter-intuitive outdoor safety warnings ('Don't go camping until...') combine personal danger stakes with immediate instructional value.",
   "live_youtube_trends": [
-    "Rapid emergency tactile crafting hacks (like improvised hand protection for thorns or extreme elements) drive massive short-form retention through fast, highly visual problem-solving in the first 3 seconds.",
-    "Stormproofing gear demonstrations featuring chemical or physical modifications (like waterproofing matches or treating tinder) create strong curiosity loops regarding failure prevention.",
-    "High-stakes survival adjustments that correct a common counter-intuitive gear mistake outperform standard instructional tutorials by relying on immediate physical consequence."
+    "High-urgency DIY survival hacks like stormproof matches and chemical fire-starting (foil and batteries) trigger millions of views through rapid, satisfying visual payoffs.",
+    "Counter-intuitive outdoor safety warnings ('Don't go camping until...') combine personal danger stakes with immediate instructional value.",
+    "Compact off-grid utility items like rocket stoves and desert/river natural cooling systems dominate through clever physical engineering.",
+    "Short-form structural survival tips framed as sequential problem-solving ('Smart forest survival skills') retain viewers past the 15-second mark."
   ],
-  "updated_at": "2026-11-26T15:15:00.339072+00:00"
+  "updated_at": "2026-11-27T15:04:25.299475+00:00"
 }

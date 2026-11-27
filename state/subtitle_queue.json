@@ -1,6 +1,6 @@
 {
   "quota": {
-    "2026-11-27": 400
+    "2026-11-27": 1200
   },
   "videos": {
     "KNkAeiRp3so": {
@@ -1002,7 +1002,8 @@
         ]
       ],
       "done_langs": [
-        "en"
+        "en",
+        "es"
       ],
       "localized_langs": [
         "de",
@@ -1051,7 +1052,8 @@
         ]
       ],
       "done_langs": [
-        "en"
+        "en",
+        "es"
       ],
       "localized_langs": [
         "de",
@@ -1109,10 +1111,10 @@
         "tr"
       ],
       "pinned_comment": "Would you rather camp near grizzly territory or hike without bear spray? Full 4K documentary: https://youtu.be/kvyT0KvImr4",
-      "comment_posted": false,
+      "comment_posted": true,
       "publish_at": "2026-11-27T13:15:00Z",
       "queued_at": "2026-11-26T21:06:38.422873+00:00"
     }
   },
-  "updated_at": "2026-11-27T01:53:02.161629+00:00"
+  "updated_at": "2026-11-27T15:07:32.224917+00:00"
 }
